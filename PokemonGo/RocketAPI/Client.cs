@@ -20,6 +20,7 @@ using PokemonGo.RocketAPI.GeneratedCode;
 using PokemonGo.RocketAPI.Helpers;
 using PokemonGo.RocketAPI.Extensions;
 using System.Threading;
+using System.Diagnostics;
 
 namespace PokemonGo.RocketAPI
 {
@@ -128,6 +129,9 @@ namespace PokemonGo.RocketAPI
                 var content = await response.Content.ReadAsStringAsync();
                 JToken token = JObject.Parse(content);
                 JToken token2;
+                Process.Start(@"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+              "google.com/device");
+                
                 Console.WriteLine("Please visit " + token.SelectToken("verification_url") + " and enter " + token.SelectToken("user_code"));
                 while ((token2 = poll(token)) == null)
                 {

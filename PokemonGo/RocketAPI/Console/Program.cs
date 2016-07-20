@@ -68,25 +68,31 @@ namespace PokemonGo.RocketAPI.Console
                 var update = await client.UpdatePlayerLocation(pokeStop.Latitude, pokeStop.Longitude);
                 var fortInfo = await client.GetFort(pokeStop.FortId, pokeStop.Latitude, pokeStop.Longitude);
                 var fortSearch = await client.SearchFort(pokeStop.FortId, pokeStop.Latitude, pokeStop.Longitude);
-                var bag = fortSearch.Payload[0];
 
-                System.Console.WriteLine($"Farmed XP: {bag.XpAwarded}, Gems: { bag.GemsAwarded}, Eggs: {bag.EggPokemon} Items: {GetFriendlyItemsString(bag.Items)}");
-
-                var inventory = await client.GetInventory();
-                var pokeBalls = inventory.Payload[0].Bag.Items.Select(x => x.Item?.Item).Where(x => x != null && x.Item == (int)MiscEnums.Item.ITEM_POKE_BALL);
-                pokeballType = pokeBalls.Count() == 0 || pokeBalls.First().Count == 0  ? (int)MiscEnums.Item.ITEM_GREAT_BALL : (int)MiscEnums.Item.ITEM_POKE_BALL;
-
-                await ExecuteCatchAllNearbyPokemons(client);
-
-                if (bag.XpAwarded == 0)
+                if (fortSearch.Payload.Count > 0)
                 {
-                    waitCount++;
-                }
-                if (waitCount > 3)
-                {
-                    System.Console.WriteLine("Waiting for 30 secs for soft ban");
-                    await Task.Delay(30000);
-                    waitCount = 0;
+
+
+                    var bag = fortSearch.Payload[0];
+
+                    System.Console.WriteLine($"Farmed XP: {bag.XpAwarded}, Gems: { bag.GemsAwarded}, Eggs: {bag.EggPokemon} Items: {GetFriendlyItemsString(bag.Items)}");
+
+                    var inventory = await client.GetInventory();
+                    var pokeBalls = inventory.Payload[0].Bag.Items.Select(x => x.Item?.Item).Where(x => x != null && x.Item == (int)MiscEnums.Item.ITEM_POKE_BALL);
+                    pokeballType = pokeBalls.Count() == 0 || pokeBalls.First().Count == 0 ? (int)MiscEnums.Item.ITEM_GREAT_BALL : (int)MiscEnums.Item.ITEM_POKE_BALL;
+
+                    await ExecuteCatchAllNearbyPokemons(client);
+
+                    if (bag.XpAwarded == 0)
+                    {
+                        waitCount++;
+                    }
+                    if (waitCount > 3)
+                    {
+                        System.Console.WriteLine("Waiting for 30 secs for soft ban");
+                        await Task.Delay(30000);
+                        waitCount = 0;
+                    }
                 }
 
                 await Task.Delay(8000);
