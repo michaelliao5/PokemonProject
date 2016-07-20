@@ -84,6 +84,13 @@ namespace PokemonGo.RocketAPI.Console
                             Environment.Exit(0);
                         }
 
+                        if (pokeStop.LureInfo.LureExpiresTimestampMs > DateTime.UtcNow.ToUnixTime())
+                        {
+                            System.Console.WriteLine($"Has Lure: {pokeStop.LureInfo.ActivePokemonId}");
+
+                        }                       
+
+
                         await ExecuteCatchAllNearbyPokemons(client);
 
                         if (fortSearch.ExperienceAwarded == 0)
@@ -119,7 +126,7 @@ namespace PokemonGo.RocketAPI.Console
                 {
                     caughtPokemonResponse = await client.CatchPokemon(pokemon.EncounterId, pokemon.SpawnpointId, pokemon.Latitude, pokemon.Longitude, (MiscEnums.Item)pokeballType); //note: reverted from settings because this should not be part of settings but part of logic
                 } 
-                while(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed);
+                while(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
 
                 System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId}" : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away..");
                 await Task.Delay(5000);
