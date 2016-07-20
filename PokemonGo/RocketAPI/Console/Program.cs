@@ -16,6 +16,7 @@ namespace PokemonGo.RocketAPI.Console
     class Program
     {
         static int pokeballType = 0;
+        static int myMaxPokemon = 400;
         static void Main(string[] args)
         {
             Task.Run(() => Execute());
@@ -80,6 +81,14 @@ namespace PokemonGo.RocketAPI.Console
                     var inventory = await client.GetInventory();
                     var pokeBalls = inventory.Payload[0].Bag.Items.Select(x => x.Item?.Item).Where(x => x != null && x.Item == (int)MiscEnums.Item.ITEM_POKE_BALL);
                     pokeballType = pokeBalls.Count() == 0 || pokeBalls.First().Count == 0 ? (int)MiscEnums.Item.ITEM_GREAT_BALL : (int)MiscEnums.Item.ITEM_POKE_BALL;
+
+                    var pokemons = inventory.Payload[0].Bag.Items.Select(i => i.Item?.Pokemon).Where(p => p != null);
+                    
+                    System.Console.WriteLine("PokemonCount:" + pokemons.Count());
+                    if(pokemons.Count() >= myMaxPokemon)
+                    {
+                        Environment.Exit(0);
+                    }
 
                     await ExecuteCatchAllNearbyPokemons(client);
 
