@@ -6,3 +6,6 @@ packages
 bin/
 obj/
 /PokemonGo/RocketAPI/Proto/google/protobuf
+/.vs/Pokemon Go Rocket API FeroxRev/v14/.suo
+/.vs/Pokemon Go Rocket API FeroxRev/v14
+/.vs/Pokemon Go Rocket API/v14/.suo
