@@ -12,6 +12,7 @@ using System.Diagnostics;
 using AllEnum;
 using System.Linq;
 using System.Collections.Generic;
+using System.Configuration;
 
 namespace PokemonGo.RocketAPI
 {
@@ -52,16 +53,20 @@ namespace PokemonGo.RocketAPI
             _currentLng = lng;
         }
 
-        public async Task<string> DoGoogleLogin(string token)
+        public async Task<string> DoGoogleLogin()
         {
             Process.Start(@"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
               "google.com/device");
-            if (token == string.Empty)
+            var token = ConfigurationManager.AppSettings["GoogleRefreshToken"];
+            if (String.IsNullOrEmpty(token))
             {
                 var tokenResponse = await GoogleLogin.GetAccessToken();
                 _accessToken = tokenResponse.id_token;
                 token = tokenResponse.access_token;
-                Console.WriteLine($"Put RefreshToken in settings for direct login: {token}");
+                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                configFile.AppSettings.Settings["GoogleRefreshToken"].Value = token;
+                configFile.Save();
+                ConfigurationManager.RefreshSection("appSettings");
             }
             else
             {
@@ -284,7 +289,15 @@ namespace PokemonGo.RocketAPI
                  PokemonId.Magikarp,
                  PokemonId.Eevee,
                  PokemonId.Dratini,
-                 PokemonId.Pinsir
+                 PokemonId.Pinsir,
+                 PokemonId.Ponyta,
+                 PokemonId.Bellsprout,
+                 PokemonId.Exeggcute,
+                 PokemonId.Geoduge,
+                 PokemonId.Oddish,
+                 PokemonId.Doduo,
+                 PokemonId.Ekans,
+                 PokemonId.Sandshrew,
              };
 
             var inventory = await client.GetInventory();

@@ -32,7 +32,7 @@ namespace PokemonGo.RocketAPI.Console
             if (Settings.AuthType == AuthType.Ptc)
                 await client.DoPtcLogin(Settings.PtcUsername, Settings.PtcPassword);
             else if (Settings.AuthType == AuthType.Google)
-                Settings.GoogleRefreshToken = await client.DoGoogleLogin(Settings.GoogleRefreshToken);
+                Settings.GoogleRefreshToken = await client.DoGoogleLogin();
             
             await client.SetServer();
             var profile = await client.GetProfile();
@@ -117,7 +117,7 @@ namespace PokemonGo.RocketAPI.Console
                 CatchPokemonResponse caughtPokemonResponse;
                 do
                 {
-                    caughtPokemonResponse = await client.CatchPokemon(pokemon.EncounterId, pokemon.SpawnpointId, pokemon.Latitude, pokemon.Longitude, MiscEnums.Item.ITEM_POKE_BALL); //note: reverted from settings because this should not be part of settings but part of logic
+                    caughtPokemonResponse = await client.CatchPokemon(pokemon.EncounterId, pokemon.SpawnpointId, pokemon.Latitude, pokemon.Longitude, (MiscEnums.Item)pokeballType); //note: reverted from settings because this should not be part of settings but part of logic
                 } 
                 while(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed);
 
