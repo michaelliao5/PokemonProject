@@ -3,14 +3,14 @@ using PokemonGo.RocketAPI.GeneratedCode;
 
 namespace PokemonGo.RocketAPI.Console
 {
-    public class Settings : ISettings
+    public static class Settings
     {
         //Fetch these settings from intercepting the /auth call in headers and body (only needed for google auth)
-        public AuthType AuthType { get;  } = Enums.AuthType.Google;
-        public  string PtcUsername { get; } = "User";
-        public  string PtcPassword { get; } = "alligator2";
-        public  string GoogleRefreshToken { get; set; } = string.Empty;
-        public  double DefaultLatitude { get; } = 10;
-        public  double DefaultLongitude { get; } = 10;
+        public const AuthType AuthType = Enums.AuthType.Google;
+        public const string PtcUsername  = "User";
+        public const string PtcPassword = "alligator2";
+        public static string GoogleRefreshToken = string.Empty;
+        public const double DefaultLatitude = 40.764858121285975;
+        public const double DefaultLongitude = -73.97272288799286;
     }
 }

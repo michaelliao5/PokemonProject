@@ -8,12 +8,15 @@ using PokemonGo.RocketAPI.GeneratedCode;
 using PokemonGo.RocketAPI.Helpers;
 using PokemonGo.RocketAPI.Extensions;
 using PokemonGo.RocketAPI.Login;
+using System.Diagnostics;
+using AllEnum;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace PokemonGo.RocketAPI
 {
     public class Client
     {
-        private readonly ISettings _settings;
         private readonly HttpClient _httpClient;
         private AuthType _authType = AuthType.Google;
         private string _accessToken;
@@ -23,10 +26,9 @@ namespace PokemonGo.RocketAPI
         private double _currentLat;
         private double _currentLng;
 
-        public Client(ISettings settings)
+        public Client(double lat, double lng)
         {
-            _settings = settings;
-            SetCoordinates(_settings.DefaultLatitude, _settings.DefaultLongitude);
+            SetCoordinates(lat, lng);
 
             //Setup HttpClient and create default headers
             HttpClientHandler handler = new HttpClientHandler()
@@ -36,7 +38,7 @@ namespace PokemonGo.RocketAPI
             };
             _httpClient = new HttpClient(new RetryHandler(handler));
             _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Niantic App");
-                //"Dalvik/2.1.0 (Linux; U; Android 5.1.1; SM-G900F Build/LMY48G)");
+            //"Dalvik/2.1.0 (Linux; U; Android 5.1.1; SM-G900F Build/LMY48G)");
             _httpClient.DefaultRequestHeaders.ExpectContinue = false;
             _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Connection", "keep-alive");
             _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "*/*");
@@ -50,21 +52,24 @@ namespace PokemonGo.RocketAPI
             _currentLng = lng;
         }
 
-        public async Task DoGoogleLogin()
+        public async Task<string> DoGoogleLogin(string token)
         {
-            if (_settings.GoogleRefreshToken == string.Empty)
+            Process.Start(@"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+              "google.com/device");
+            if (token == string.Empty)
             {
                 var tokenResponse = await GoogleLogin.GetAccessToken();
                 _accessToken = tokenResponse.id_token;
-                _settings.GoogleRefreshToken = tokenResponse.access_token;
-                Console.WriteLine($"Put RefreshToken in settings for direct login: {_settings.GoogleRefreshToken}");
+                token = tokenResponse.access_token;
+                Console.WriteLine($"Put RefreshToken in settings for direct login: {token}");
             }
-                else
+            else
             {
-                var tokenResponse = await GoogleLogin.GetAccessToken(_settings.GoogleRefreshToken);
+                var tokenResponse = await GoogleLogin.GetAccessToken(token);
                 _accessToken = tokenResponse.id_token;
-                _authType  = AuthType.Google;
+                _authType = AuthType.Google;
             }
+            return token;
         }
 
         public async Task DoPtcLogin(string username, string password)
@@ -85,7 +90,7 @@ namespace PokemonGo.RocketAPI
             var updateRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 10,
                 new Request.Types.Requests()
                 {
-                    Type = (int) RequestType.PLAYER_UPDATE,
+                    Type = (int)RequestType.PLAYER_UPDATE,
                     Message = customRequest.ToByteString()
                 });
             var updateResponse =
@@ -112,7 +117,7 @@ namespace PokemonGo.RocketAPI
         public async Task<GetPlayerResponse> GetProfile()
         {
             var profileRequest = RequestBuilder.GetInitialRequest(_accessToken, _authType, _currentLat, _currentLng, 10,
-                new Request.Types.Requests() {Type = (int) RequestType.GET_PLAYER});
+                new Request.Types.Requests() { Type = (int)RequestType.GET_PLAYER });
             return await _httpClient.PostProtoPayload<Request, GetPlayerResponse>($"https://{_apiUrl}/rpc", profileRequest);
         }
 
@@ -139,19 +144,19 @@ namespace PokemonGo.RocketAPI
             var mapRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 10,
                 new Request.Types.Requests()
                 {
-                    Type = (int) RequestType.GET_MAP_OBJECTS,
+                    Type = (int)RequestType.GET_MAP_OBJECTS,
                     Message = customRequest.ToByteString()
                 },
-                new Request.Types.Requests() {Type = (int) RequestType.GET_HATCHED_OBJECTS},
+                new Request.Types.Requests() { Type = (int)RequestType.GET_HATCHED_OBJECTS },
                 new Request.Types.Requests()
                 {
-                    Type = (int) RequestType.GET_INVENTORY,
-                    Message = new Request.Types.Time() {Time_ = DateTime.UtcNow.ToUnixTime()}.ToByteString()
+                    Type = (int)RequestType.GET_INVENTORY,
+                    Message = new Request.Types.Time() { Time_ = DateTime.UtcNow.ToUnixTime() }.ToByteString()
                 },
-                new Request.Types.Requests() {Type = (int) RequestType.CHECK_AWARDED_BADGES},
+                new Request.Types.Requests() { Type = (int)RequestType.CHECK_AWARDED_BADGES },
                 new Request.Types.Requests()
                 {
-                    Type = (int) RequestType.DOWNLOAD_SETTINGS,
+                    Type = (int)RequestType.DOWNLOAD_SETTINGS,
                     Message =
                         new Request.Types.SettingsGuid()
                         {
@@ -174,7 +179,7 @@ namespace PokemonGo.RocketAPI
             var fortDetailRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 10,
                 new Request.Types.Requests()
                 {
-                    Type = (int) RequestType.FORT_DETAILS,
+                    Type = (int)RequestType.FORT_DETAILS,
                     Message = customRequest.ToByteString()
                 });
             return await _httpClient.PostProtoPayload<Request, FortDetailsResponse>($"https://{_apiUrl}/rpc", fortDetailRequest);
@@ -202,7 +207,7 @@ namespace PokemonGo.RocketAPI
             var fortDetailRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 30,
                 new Request.Types.Requests()
                 {
-                    Type = (int) RequestType.FORT_SEARCH,
+                    Type = (int)RequestType.FORT_SEARCH,
                     Message = customRequest.ToByteString()
                 });
             return await _httpClient.PostProtoPayload<Request, FortSearchResponse>($"https://{_apiUrl}/rpc", fortDetailRequest);
@@ -221,7 +226,7 @@ namespace PokemonGo.RocketAPI
             var encounterResponse = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 30,
                 new Request.Types.Requests()
                 {
-                    Type = (int) RequestType.ENCOUNTER,
+                    Type = (int)RequestType.ENCOUNTER,
                     Message = customRequest.ToByteString()
                 });
             return await _httpClient.PostProtoPayload<Request, EncounterResponse>($"https://{_apiUrl}/rpc", encounterResponse);
@@ -234,7 +239,7 @@ namespace PokemonGo.RocketAPI
             var customRequest = new Request.Types.CatchPokemonRequest()
             {
                 EncounterId = encounterId,
-                Pokeball = (int) pokeball,
+                Pokeball = (int)pokeball,
                 SpawnPointGuid = spawnPointGuid,
                 HitPokemon = 1,
                 NormalizedReticleSize = Utils.FloatAsUlong(1.950),
@@ -245,12 +250,135 @@ namespace PokemonGo.RocketAPI
             var catchPokemonRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 30,
                 new Request.Types.Requests()
                 {
-                    Type = (int) RequestType.CATCH_POKEMON,
+                    Type = (int)RequestType.CATCH_POKEMON,
                     Message = customRequest.ToByteString()
                 });
             return
                 await
                     _httpClient.PostProtoPayload<Request, CatchPokemonResponse>($"https://{_apiUrl}/rpc", catchPokemonRequest);
+        }
+
+        public static async Task TransferAllButStrongestUnwantedPokemon(Client client)
+        {
+            System.Console.WriteLine("[!] firing up the meat grinder");
+
+            var unwantedPokemonTypes = new[]
+            {
+                 PokemonId.Pidgey,
+                 PokemonId.Rattata,
+                 PokemonId.Weedle,
+                 PokemonId.Zubat,
+                 PokemonId.Caterpie,
+                 PokemonId.Pidgeotto,
+                 PokemonId.NidoranFemale,
+                 PokemonId.NidoranMale,
+                 PokemonId.Paras,
+                 PokemonId.Venonat,
+                 PokemonId.Psyduck,
+                 PokemonId.Poliwag,
+                 PokemonId.Slowpoke,
+                 PokemonId.Drowzee,
+                 PokemonId.Gastly,
+                 PokemonId.Goldeen,
+                 PokemonId.Staryu,
+                 PokemonId.Magikarp,
+                 PokemonId.Eevee,
+                 PokemonId.Dratini,
+                 PokemonId.Pinsir
+             };
+
+            var inventory = await client.GetInventory();
+            var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null && p?.PokemonId > 0);
+
+            foreach (var unwantedPokemonType in unwantedPokemonTypes)
+            {
+                var pokemonOfDesiredType = pokemons.Where(p => p.PokemonId == unwantedPokemonType)
+                                                   .OrderByDescending(p => p.Cp)
+                                                   .ToList();
+
+                var unwantedPokemon = pokemonOfDesiredType.Skip(1) // keep the strongest one for potential battle-evolving
+                                                          .ToList();
+
+                System.Console.WriteLine($"Grinding {unwantedPokemon.Count} pokemons of type {unwantedPokemonType}");
+                await TransferAllGivenPokemons(client, unwantedPokemon);
+            }
+
+            System.Console.WriteLine("[!] finished grinding all the meat");
+        }
+
+        private static async Task TransferAllGivenPokemons(Client client, IEnumerable<PokemonData> unwantedPokemons)
+        {
+            foreach (var pokemon in unwantedPokemons)
+            {
+                var transferPokemonResponse = await client.TransferPokemon(pokemon.Id);
+
+                /*
+                ReleasePokemonOutProto.Status {
+                   UNSET = 0;
+                   SUCCESS = 1;
+                   POKEMON_DEPLOYED = 2;
+                   FAILED = 3;
+                   ERROR_POKEMON_IS_EGG = 4;
+                }*/
+
+                if (transferPokemonResponse.Status == 1)
+                {
+                    System.Console.WriteLine($"Shoved another {pokemon.PokemonId} down the meat grinder");
+                }
+                else
+                {
+                    var status = transferPokemonResponse.Status;
+
+                    System.Console.WriteLine($"Somehow failed to grind {pokemon.PokemonId}. ReleasePokemonOutProto.Status was {status}");                }
+
+                await Task.Delay(3000);
+            }
+        }
+
+        private static async Task EvolveAllGivenPokemons(Client client, IEnumerable<PokemonData> pokemonToEvolve)
+        {
+            foreach (var pokemon in pokemonToEvolve)
+            {
+                /*
+                enum Holoholo.Rpc.Types.EvolvePokemonOutProto.Result {
+                   UNSET = 0;
+                   SUCCESS = 1;
+                   FAILED_POKEMON_MISSING = 2;
+                   FAILED_INSUFFICIENT_RESOURCES = 3;
+                   FAILED_POKEMON_CANNOT_EVOLVE = 4;
+                   FAILED_POKEMON_IS_DEPLOYED = 5;
+                }
+                }*/
+
+                var countOfEvolvedUnits = 0;
+                var xpCount = 0;
+
+                EvolvePokemonOut evolvePokemonOutProto;
+                do
+                {
+                    evolvePokemonOutProto = await client.EvolvePokemon(pokemon.Id);
+
+                    if (evolvePokemonOutProto.Result == 1)
+                    {
+                        System.Console.WriteLine($"Evolved {pokemon.PokemonId} successfully for {evolvePokemonOutProto.ExpAwarded}xp");
+
+                        countOfEvolvedUnits ++;
+                        xpCount = evolvePokemonOutProto.ExpAwarded;
+                    }
+                    else
+                    {
+                        var result = evolvePokemonOutProto.Result;
+
+                        System.Console.WriteLine($"Failed to evolve {pokemon.PokemonId}. EvolvePokemonOutProto.Result was {result}");
+                        System.Console.WriteLine($"Due to above error, stopping evolving {pokemon.PokemonId}");
+                    }
+                }
+                while (evolvePokemonOutProto.Result == 1);
+
+                System.Console.WriteLine($"Evolved {countOfEvolvedUnits} pieces of {pokemon.PokemonId} for {xpCount}xp");
+
+                await Task.Delay(3000);
+            }
         }
 
         public async Task<TransferPokemonOut> TransferPokemon(ulong pokemonId)
