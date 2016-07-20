@@ -72,36 +72,37 @@ namespace PokemonGo.RocketAPI.Console
 
                 if (fortSearch.Payload.Count > 0)
                 {
-
-
                     var bag = fortSearch.Payload[0];
 
                     System.Console.WriteLine($"Farmed XP: {bag.XpAwarded}, Gems: { bag.GemsAwarded}, Eggs: {bag.EggPokemon} Items: {GetFriendlyItemsString(bag.Items)}");
 
                     var inventory = await client.GetInventory();
-                    var pokeBalls = inventory.Payload[0].Bag.Items.Select(x => x.Item?.Item).Where(x => x != null && x.Item == (int)MiscEnums.Item.ITEM_POKE_BALL);
-                    pokeballType = pokeBalls.Count() == 0 || pokeBalls.First().Count == 0 ? (int)MiscEnums.Item.ITEM_GREAT_BALL : (int)MiscEnums.Item.ITEM_POKE_BALL;
-
-                    var pokemons = inventory.Payload[0].Bag.Items.Select(i => i.Item?.Pokemon).Where(p => p != null);
-                    
-                    System.Console.WriteLine("PokemonCount:" + pokemons.Count());
-                    if(pokemons.Count() >= myMaxPokemon)
+                    if(inventory != null && inventory.Payload != null && inventory.Payload.Count > 0 && inventory.Payload[0].Bag != null && inventory.Payload[0].Bag.Items != null)
                     {
-                        Environment.Exit(0);
-                    }
+                        var pokeBalls = inventory.Payload[0].Bag.Items.Select(x => x.Item?.Item).Where(x => x != null && x.Item == (int)MiscEnums.Item.ITEM_POKE_BALL);
+                        pokeballType = pokeBalls.Count() == 0 || pokeBalls.First().Count == 0 ? (int)MiscEnums.Item.ITEM_GREAT_BALL : (int)MiscEnums.Item.ITEM_POKE_BALL;
 
-                    await ExecuteCatchAllNearbyPokemons(client);
+                        var pokemons = inventory.Payload[0].Bag.Items.Select(i => i.Item?.Pokemon).Where(p => p != null);
 
-                    if (bag.XpAwarded == 0)
-                    {
-                        waitCount++;
-                    }
-                    if (waitCount > 3)
-                    {
-                        System.Console.WriteLine("Waiting for 30 secs for soft ban");
-                        await Task.Delay(30000);
-                        waitCount = 0;
-                    }
+                        System.Console.WriteLine("PokemonCount:" + pokemons.Count());
+                        if (pokemons.Count() >= myMaxPokemon)
+                        {
+                            Environment.Exit(0);
+                        }
+
+                        await ExecuteCatchAllNearbyPokemons(client);
+
+                        if (bag.XpAwarded == 0)
+                        {
+                            waitCount++;
+                        }
+                        if (waitCount > 3)
+                        {
+                            System.Console.WriteLine("Waiting for 30 secs for soft ban");
+                            await Task.Delay(30000);
+                            waitCount = 0;
+                        }
+                    }                    
                 }
 
                 await Task.Delay(8000);
