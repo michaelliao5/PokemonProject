@@ -55,11 +55,11 @@ namespace PokemonGo.RocketAPI
 
         public async Task<string> DoGoogleLogin()
         {
-            Process.Start(@"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-              "google.com/device");
             var token = ConfigurationManager.AppSettings["GoogleRefreshToken"];
             if (String.IsNullOrEmpty(token))
             {
+                Process.Start(@"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                  "google.com/device");
                 var tokenResponse = await GoogleLogin.GetAccessToken();
                 _accessToken = tokenResponse.id_token;
                 token = tokenResponse.access_token;

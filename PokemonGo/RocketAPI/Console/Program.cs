@@ -17,39 +17,56 @@ namespace PokemonGo.RocketAPI.Console
     class Program
     {
         static int pokeballType = 0;
-        static int myMaxPokemon = 400;        
+        static int myMaxPokemon = 250;        
 
         static void Main(string[] args)
         {
-            Task.Run(() => Execute());
-             System.Console.ReadLine();
+            string username, password = "";
+            System.Console.WriteLine($"PTC Username:");
+            Settings.PtcUsername = System.Console.ReadLine();
+            System.Console.WriteLine($"PTC Password:");
+            Settings.PtcPassword = System.Console.ReadLine();
+            Task.Run(() => Execute());         
+            System.Console.ReadLine();
         }
         
         static async void Execute()
         {
-            var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude);
-
-            if (Settings.AuthType == AuthType.Ptc)
-                await client.DoPtcLogin(Settings.PtcUsername, Settings.PtcPassword);
-            else if (Settings.AuthType == AuthType.Google)
-                Settings.GoogleRefreshToken = await client.DoGoogleLogin();
-            
-            await client.SetServer();
-            var profile = await client.GetProfile();
-            var settings = await client.GetSettings();
-            var mapObjects = await client.GetMapObjects();
-            var inventory = await client.GetInventory();
-            var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null && p?.PokemonId > 0);
-
-            //await Client.TransferAllButStrongestUnwantedPokemon(client);
-
-            while (true)
+            try
             {
-                await ExecuteFarmingPokestopsAndPokemons(client);
-                System.Console.WriteLine("Resetting Player Position");
-                var update = await client.UpdatePlayerLocation(Settings.DefaultLatitude, Settings.DefaultLongitude);
-                await Task.Delay(15000);
-            }            
+                var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude);
+
+                if (Settings.AuthType == AuthType.Ptc)
+                {
+                    await client.DoPtcLogin(Settings.PtcUsername, Settings.PtcPassword);
+                }
+                else if (Settings.AuthType == AuthType.Google)
+                    Settings.GoogleRefreshToken = await client.DoGoogleLogin();
+
+                await client.SetServer();
+
+                var profile = await client.GetProfile();
+                var settings = await client.GetSettings();
+                var mapObjects = await client.GetMapObjects();
+                var inventory = await client.GetInventory();
+                var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null && p?.PokemonId > 0);
+
+                await Client.TransferAllButStrongestUnwantedPokemon(client);
+
+                while (true)
+                {
+                    await ExecuteFarmingPokestopsAndPokemons(client);
+                    System.Console.WriteLine("Resetting Player Position");
+                    var update = await client.UpdatePlayerLocation(Settings.DefaultLatitude, Settings.DefaultLongitude);
+                    await Task.Delay(15000);
+                }
+            }
+            catch (Exception e)
+            {
+                System.Console.WriteLine($"Exception occurred, Restarting..");
+                await Task.Delay(10000);
+                Task.Run(() => Execute());
+            }                       
         }
 
         private static async Task ExecuteFarmingPokestopsAndPokemons(Client client)
