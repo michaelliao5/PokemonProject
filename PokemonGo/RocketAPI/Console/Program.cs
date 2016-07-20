@@ -41,7 +41,7 @@ namespace PokemonGo.RocketAPI.Console
             var inventory = await client.GetInventory();
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null && p?.PokemonId > 0);
 
-            await Client.TransferAllButStrongestUnwantedPokemon(client);
+            //await Client.TransferAllButStrongestUnwantedPokemon(client);
 
             while (true)
             {
@@ -83,13 +83,6 @@ namespace PokemonGo.RocketAPI.Console
                         {
                             Environment.Exit(0);
                         }
-
-                        if (pokeStop.LureInfo.LureExpiresTimestampMs > DateTime.UtcNow.ToUnixTime())
-                        {
-                            System.Console.WriteLine($"Has Lure: {pokeStop.LureInfo.ActivePokemonId}");
-
-                        }                       
-
 
                         await ExecuteCatchAllNearbyPokemons(client);
 
