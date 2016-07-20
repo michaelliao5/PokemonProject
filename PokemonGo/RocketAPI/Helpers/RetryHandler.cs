@@ -11,7 +11,7 @@ namespace PokemonGo.RocketAPI.Helpers
 {
     class RetryHandler : DelegatingHandler
     {
-        private const int MaxRetries = 1000;
+        private const int MaxRetries = 100;
 
         public RetryHandler(HttpMessageHandler innerHandler)
             : base(innerHandler)
