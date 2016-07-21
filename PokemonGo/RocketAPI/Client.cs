@@ -64,10 +64,6 @@ namespace PokemonGo.RocketAPI
                 _accessToken = tokenResponse.id_token;
                 refreshingToken = tokenResponse.access_token;
                 var refreshToken = tokenResponse.refresh_token;
-                //var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                //configFile.AppSettings.Settings["GoogleRefreshToken"].Value = refreshToken;
-                //configFile.Save();
-                //ConfigurationManager.RefreshSection("appSettings");
                 return refreshToken;
             }
             else
@@ -75,7 +71,7 @@ namespace PokemonGo.RocketAPI
                 var tokenResponse = await GoogleLogin.GetAccessToken(refreshingToken);
                 _accessToken = tokenResponse.id_token;
                 _authType = AuthType.Google;
-                return tokenResponse.refresh_token;
+                return refreshingToken;
             }
             
         }
