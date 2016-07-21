@@ -54,29 +54,30 @@ namespace PokemonGo.RocketAPI
             _currentLng = lng;
         }
 
-        public async Task<string> DoGoogleLogin()
+        public async Task<string> DoGoogleLogin(string refreshingToken)
         {
-            var token = ConfigurationManager.AppSettings["GoogleRefreshToken"];
-            if (String.IsNullOrEmpty(token))
+            if (String.IsNullOrEmpty(refreshingToken))
             {
                 Process.Start(@"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
                   "google.com/device");
                 var tokenResponse = await GoogleLogin.GetAccessToken();
                 _accessToken = tokenResponse.id_token;
-                token = tokenResponse.access_token;
+                refreshingToken = tokenResponse.access_token;
                 var refreshToken = tokenResponse.refresh_token;
-                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                configFile.AppSettings.Settings["GoogleRefreshToken"].Value = refreshToken;
-                configFile.Save();
-                ConfigurationManager.RefreshSection("appSettings");
+                //var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                //configFile.AppSettings.Settings["GoogleRefreshToken"].Value = refreshToken;
+                //configFile.Save();
+                //ConfigurationManager.RefreshSection("appSettings");
+                return refreshToken;
             }
             else
             {
-                var tokenResponse = await GoogleLogin.GetAccessToken(token);
+                var tokenResponse = await GoogleLogin.GetAccessToken(refreshingToken);
                 _accessToken = tokenResponse.id_token;
                 _authType = AuthType.Google;
+                return tokenResponse.refresh_token;
             }
-            return token;
+            
         }
 
         public async Task DoPtcLogin(string username, string password)

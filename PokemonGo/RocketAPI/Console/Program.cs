@@ -24,17 +24,20 @@ namespace PokemonGo.RocketAPI.Console
         {
             System.Console.WriteLine($"Location Set to New York Central Park by Default");
             System.Console.WriteLine($"Input Longitude, press enter if going with New York:");
-            var longi = System.Console.ReadLine();
-            if(!string.IsNullOrEmpty(longi))
+            var longi = System.Console.ReadLine();            
+            if (!string.IsNullOrEmpty(longi))
             {
                 System.Console.WriteLine($"Input Latitude:");
                 Settings.DefaultLatitude = Double.Parse(System.Console.ReadLine());
                 Settings.DefaultLongitude = Double.Parse(longi);
             }
-            
 
-            if (Settings.AuthType == AuthType.Ptc)
+            System.Console.WriteLine($"Using PTC? (y/n)?");
+            var ptc = System.Console.ReadLine();
+
+            if (ptc == "y" || Settings.AuthType == AuthType.Ptc)
             {
+                Settings.AuthType = AuthType.Ptc;
                 string username, password = "";
                 System.Console.WriteLine($"PTC Username:");
                 Settings.PtcUsername = System.Console.ReadLine();
@@ -58,7 +61,7 @@ namespace PokemonGo.RocketAPI.Console
                     await client.DoPtcLogin(Settings.PtcUsername, Settings.PtcPassword);
                 }
                 else if (Settings.AuthType == AuthType.Google)
-                    Settings.GoogleRefreshToken = await client.DoGoogleLogin();
+                    Settings.GoogleRefreshToken = await client.DoGoogleLogin(Settings.GoogleRefreshToken);
 
                 await client.SetServer();
 

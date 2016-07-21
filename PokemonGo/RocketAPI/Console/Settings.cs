@@ -7,7 +7,7 @@ namespace PokemonGo.RocketAPI.Console
     public static class Settings
     {
         //Fetch these settings from intercepting the /auth call in headers and body (only needed for google auth)
-        public const AuthType AuthType = Enums.AuthType.Google;
+        public static AuthType AuthType = Enums.AuthType.Google;
         public static string PtcUsername  = "User";
         public static string PtcPassword = "alligator2";
         public static string GoogleRefreshToken = string.Empty;
