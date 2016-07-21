@@ -74,6 +74,11 @@ message InventoryItemData {
   PokemonFamily pokemon_family = 10;
 }
 
+message RecycleInventoryItem {
+ 	AllEnum.ItemId item_id = 1;
+ 	int32 count = 2;
+ }
+
 message Pokemon {
   int32 id = 1;
   AllEnum.PokemonId pokemon_type = 2;

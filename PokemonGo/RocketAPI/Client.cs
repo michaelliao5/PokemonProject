@@ -13,6 +13,7 @@ using AllEnum;
 using System.Linq;
 using System.Collections.Generic;
 using System.Configuration;
+using static PokemonGo.RocketAPI.GeneratedCode.Response.Types;
 
 namespace PokemonGo.RocketAPI
 {
@@ -63,8 +64,9 @@ namespace PokemonGo.RocketAPI
                 var tokenResponse = await GoogleLogin.GetAccessToken();
                 _accessToken = tokenResponse.id_token;
                 token = tokenResponse.access_token;
+                var refreshToken = tokenResponse.refresh_token;
                 var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                configFile.AppSettings.Settings["GoogleRefreshToken"].Value = token;
+                configFile.AppSettings.Settings["GoogleRefreshToken"].Value = refreshToken;
                 configFile.Save();
                 ConfigurationManager.RefreshSection("appSettings");
             }
@@ -263,6 +265,23 @@ namespace PokemonGo.RocketAPI
                     _httpClient.PostProtoPayload<Request, CatchPokemonResponse>($"https://{_apiUrl}/rpc", catchPokemonRequest);
         }
 
+        public async Task<RecycleInventoryItemResponse> RecycleItem(AllEnum.ItemId itemId, int amount)
+        {
+            var customRequest = new RecycleInventoryItem
+            {
+                ItemId = (AllEnum.ItemId)Enum.Parse(typeof(AllEnum.ItemId), itemId.ToString()),
+                Count = amount
+            };
+
+            var releasePokemonRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 30,
+            new Request.Types.Requests()
+            {
+                Type = (int)RequestType.RECYCLE_INVENTORY_ITEM,
+                Message = customRequest.ToByteString()
+            });
+            return await _httpClient.PostProtoPayload<Request, RecycleInventoryItemResponse>($"https://{_apiUrl}/rpc", releasePokemonRequest);
+        }
+
         public static async Task TransferAllButStrongestUnwantedPokemon(Client client)
         {
             System.Console.WriteLine("[!] firing up the meat grinder");
@@ -298,6 +317,22 @@ namespace PokemonGo.RocketAPI
                  PokemonId.Doduo,
                  PokemonId.Ekans,
                  PokemonId.Sandshrew,
+                 PokemonId.Fearow,
+                 PokemonId.Vulpix,
+                 PokemonId.Voltorb,
+                 PokemonId.Squirtle,
+                 PokemonId.Spearow,
+                 PokemonId.Seel,
+                 PokemonId.Rhyhorn,
+                 PokemonId.Raticate,
+                 PokemonId.Meowth,
+                 PokemonId.Mankey,
+                 PokemonId.Magnemite,
+                 PokemonId.Machop,
+                 PokemonId.Krabby,
+                 PokemonId.Graveler,
+                 PokemonId.Dodrio,
+                 PokemonId.Diglett,
              };
 
             var inventory = await client.GetInventory();
@@ -305,6 +340,9 @@ namespace PokemonGo.RocketAPI
 
             foreach (var unwantedPokemonType in unwantedPokemonTypes)
             {
+                //var candy = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonFamily).Where(p => p != null && p?.FamilyId == unwantedPokemonType);
+
+
                 var pokemonOfDesiredType = pokemons.Where(p => p.PokemonId == unwantedPokemonType)
                                                    .OrderByDescending(p => p.Cp)
                                                    .ToList();
@@ -342,7 +380,8 @@ namespace PokemonGo.RocketAPI
                 {
                     var status = transferPokemonResponse.Status;
 
-                    System.Console.WriteLine($"Somehow failed to grind {pokemon.PokemonId}. ReleasePokemonOutProto.Status was {status}");                }
+                    System.Console.WriteLine($"Somehow failed to grind {pokemon.PokemonId}. ReleasePokemonOutProto.Status was {status}");
+                }
 
                 await Task.Delay(3000);
             }
@@ -371,11 +410,11 @@ namespace PokemonGo.RocketAPI
                 {
                     evolvePokemonOutProto = await client.EvolvePokemon(pokemon.Id);
 
-                    if (evolvePokemonOutProto.Result == 1)
+                    if (evolvePokemonOutProto.Result == EvolvePokemonOut.Types.EvolvePokemonStatus.PokemonEvolvedSuccess)
                     {
                         System.Console.WriteLine($"Evolved {pokemon.PokemonId} successfully for {evolvePokemonOutProto.ExpAwarded}xp");
 
-                        countOfEvolvedUnits ++;
+                        countOfEvolvedUnits++;
                         xpCount = evolvePokemonOutProto.ExpAwarded;
                     }
                     else
@@ -386,11 +425,11 @@ namespace PokemonGo.RocketAPI
                         System.Console.WriteLine($"Due to above error, stopping evolving {pokemon.PokemonId}");
                     }
                 }
-                while (evolvePokemonOutProto.Result == 1);
+                while (evolvePokemonOutProto.Result == EvolvePokemonOut.Types.EvolvePokemonStatus.PokemonEvolvedSuccess);
 
                 System.Console.WriteLine($"Evolved {countOfEvolvedUnits} pieces of {pokemon.PokemonId} for {xpCount}xp");
 
-                await Task.Delay(3000);
+                await Task.Delay(1000);
             }
         }
 

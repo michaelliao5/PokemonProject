@@ -11,21 +11,38 @@ using PokemonGo.RocketAPI.Enums;
 using PokemonGo.RocketAPI.Extensions;
 using PokemonGo.RocketAPI.GeneratedCode;
 using PokemonGo.RocketAPI.Helpers;
+using System.Timers;
 
 namespace PokemonGo.RocketAPI.Console
 {
     class Program
     {
         static int pokeballType = 0;
-        static int myMaxPokemon = 250;        
+        static int myMaxPokemon = 250;
 
         static void Main(string[] args)
         {
-            string username, password = "";
-            System.Console.WriteLine($"PTC Username:");
-            Settings.PtcUsername = System.Console.ReadLine();
-            System.Console.WriteLine($"PTC Password:");
-            Settings.PtcPassword = System.Console.ReadLine();
+            System.Console.WriteLine($"Location Set to New York Central Park by Default");
+            System.Console.WriteLine($"Input Longitude, press enter if going with New York:");
+            var longi = System.Console.ReadLine();
+            if(!string.IsNullOrEmpty(longi))
+            {
+                System.Console.WriteLine($"Input Latitude:");
+                Settings.DefaultLatitude = Double.Parse(System.Console.ReadLine());
+                Settings.DefaultLongitude = Double.Parse(longi);
+            }
+            
+
+            if (Settings.AuthType == AuthType.Ptc)
+            {
+                string username, password = "";
+                System.Console.WriteLine($"PTC Username:");
+                Settings.PtcUsername = System.Console.ReadLine();
+                System.Console.WriteLine($"PTC Password:");
+                Settings.PtcPassword = System.Console.ReadLine();
+            }
+            
+            
             Task.Run(() => Execute());         
             System.Console.ReadLine();
         }
@@ -58,12 +75,13 @@ namespace PokemonGo.RocketAPI.Console
                     await ExecuteFarmingPokestopsAndPokemons(client);
                     System.Console.WriteLine("Resetting Player Position");
                     var update = await client.UpdatePlayerLocation(Settings.DefaultLatitude, Settings.DefaultLongitude);
+                    await RecycleItems(client);
                     await Task.Delay(15000);
                 }
             }
             catch (Exception e)
             {
-                System.Console.WriteLine($"Exception occurred, Restarting..");
+                System.Console.WriteLine($"Exception occurred, Restarting..");                
                 await Task.Delay(10000);
                 Task.Run(() => Execute());
             }                       
@@ -77,6 +95,7 @@ namespace PokemonGo.RocketAPI.Console
             pokeStops = SortRoute(pokeStops.ToList());
 
             int waitCount = 0;
+            Timer timer = new Timer();
 
             foreach (var pokeStop in pokeStops)
             {
@@ -90,15 +109,30 @@ namespace PokemonGo.RocketAPI.Console
                     var inventory = await client.GetInventory();
                     if (inventory != null && inventory.InventoryDelta != null)
                     {
-                        var pokeBalls = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemType.Pokeball);
-                        pokeballType = pokeBalls.Count() == 0 || pokeBalls.First().Count == 0 ? (int)MiscEnums.Item.ITEM_GREAT_BALL : (int)MiscEnums.Item.ITEM_POKE_BALL;
+                        var pokeBalls = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemPokeBall);
+                        var greatBalls = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemGreatBall);
+                        pokeballType = pokeBalls.Count() != 0 && pokeBalls.First().Count != 0 ? (int)MiscEnums.Item.ITEM_POKE_BALL 
+                            : greatBalls.Count() != 0 && greatBalls.First().Count != 0 ?  (int)MiscEnums.Item.ITEM_GREAT_BALL : (int)MiscEnums.Item.ITEM_ULTRA_BALL;
 
                         var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null && p?.PokemonId > 0);
+                        var playerData = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PlayerStats).Where(p => p != null && p?.Level > 0);
+                        var pData = playerData.FirstOrDefault();
 
-                        System.Console.WriteLine("PokemonCount:" + pokemons.Count());
+                        if (pData != null)
+                        {
+                            System.Console.WriteLine($"{Settings.PtcUsername} Level:{pData.Level} %:{Math.Round(((Double)pData.Experience/ (Double)pData.NextLevelXp), 2) * 100}% PokemonCount:" + pokemons.Count());
+                        }
+                        else
+                        {
+                            System.Console.WriteLine($"PokemonCount:" +  pokemons.Count());
+                        }
+
+                        
                         if (pokemons.Count() >= myMaxPokemon)
                         {
-                            Environment.Exit(0);
+                            System.Console.WriteLine($"Pokemon Full");
+                            await Task.Delay(5000);
+                            Task.Run(() => Execute());
                         }
 
                         await ExecuteCatchAllNearbyPokemons(client);
@@ -138,7 +172,7 @@ namespace PokemonGo.RocketAPI.Console
                 } 
                 while(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
 
-                System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId}" : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away..");
+                System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}" : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away.. with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}");
                 await Task.Delay(5000);
             }
         }
@@ -157,6 +191,32 @@ namespace PokemonGo.RocketAPI.Console
                           .Aggregate((a, b) => $"{a}, {b}");
         }
 
+        static async Task RecycleItems(Client client)
+         {
+            var inventory = await client.GetInventory();
+
+            var itemRecycleList = new List<ItemId>
+            {
+                ItemId.ItemSuperPotion,
+                ItemId.ItemPotion,
+                ItemId.ItemRevive,
+                ItemId.ItemMaxPotion,
+                ItemId.ItemHyperPotion,
+                ItemId.ItemRazzBerry,
+            };
+
+            var items = inventory.InventoryDelta.InventoryItems
+                .Select(i => i.InventoryItemData?.Item)
+                .Where(p => p != null && itemRecycleList.Contains(p.Item_));
+
+             foreach (var item in items)
+             {
+                 var transfer = await client.RecycleItem((AllEnum.ItemId)item.Item_, item.Count);
+                 System.Console.WriteLine($"Recycled {item.Count}x {(AllEnum.ItemId)item.Item_}");
+                 await Task.Delay(500);
+             }
+      }
+
         static List<FortData> SortRoute(List<FortData> route)
         {
             if (route.Count < 3)
@@ -166,7 +226,7 @@ namespace PokemonGo.RocketAPI.Console
             route = route.OrderBy(x => Distance(x.Latitude, x.Longitude, Settings.DefaultLatitude, Settings.DefaultLongitude)).ToList();
             foreach (var stop in route)
             {
-                System.Console.WriteLine("Distance: " + Distance(stop.Latitude, stop.Longitude, Settings.DefaultLatitude, Settings.DefaultLongitude));
+                System.Console.WriteLine("PokeStop Distance: " + Distance(stop.Latitude, stop.Longitude, Settings.DefaultLatitude, Settings.DefaultLongitude));
             }
             var newRoute = new List<FortData> { route.First() };
             route.RemoveAt(0);
