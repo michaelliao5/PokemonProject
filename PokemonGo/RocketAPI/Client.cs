@@ -73,7 +73,7 @@ namespace PokemonGo.RocketAPI
                 _authType = AuthType.Google;
                 return refreshingToken;
             }
-            
+
         }
 
         public async Task DoPtcLogin(string username, string password)
@@ -262,6 +262,24 @@ namespace PokemonGo.RocketAPI
                     _httpClient.PostProtoPayload<Request, CatchPokemonResponse>($"https://{_apiUrl}/rpc", catchPokemonRequest);
         }
 
+        public async Task<UseItemCaptureRequest> UseCaptureItem(ulong encounterId, AllEnum.ItemId itemId, string spawnPointGuid)
+        {
+            var customRequest = new UseItemCaptureRequest
+            {
+                EncounterId = encounterId,
+                ItemId = itemId,
+                SpawnPointGuid = spawnPointGuid
+            };
+
+            var useItemRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 30,
+                new Request.Types.Requests()
+                {
+                    Type = (int)RequestType.USE_ITEM_CAPTURE,
+                    Message = customRequest.ToByteString()
+                });
+            return await _httpClient.PostProtoPayload<Request, UseItemCaptureRequest>($"https://{_apiUrl}/rpc", useItemRequest);
+        }
+
         public async Task<RecycleInventoryItemResponse> RecycleItem(AllEnum.ItemId itemId, int amount)
         {
             var customRequest = new RecycleInventoryItem
@@ -289,7 +307,27 @@ namespace PokemonGo.RocketAPI
                 PokemonId.Lapras,
                 PokemonId.Snorlax,
                 PokemonId.Magmar,
-                PokemonId.Vaporeon
+                PokemonId.Dragonite,
+                PokemonId.Exeggutor,
+                PokemonId.Vaporeon,
+                PokemonId.Golduck,
+                PokemonId.Arcanine,
+                PokemonId.Flareon,
+                PokemonId.Venusaur,
+                PokemonId.Wigglytuff,
+                PokemonId.Electabuzz,
+                PokemonId.Gyarados,
+                PokemonId.Victreebell,
+                PokemonId.Poliwrath,
+                PokemonId.Vileplume,
+                PokemonId.Golem,
+                PokemonId.Rhydon,
+                PokemonId.Jolteon,
+                PokemonId.Rapidash,
+                PokemonId.Clefable,
+                PokemonId.Starmie,
+                PokemonId.Scyther,
+                PokemonId.Alakhazam,
             };
 
             var inventory = await client.GetInventory();
@@ -340,7 +378,7 @@ namespace PokemonGo.RocketAPI
                     System.Console.WriteLine($"Somehow failed to grind {pokemon.PokemonId}. ReleasePokemonOutProto.Status was {status}");
                 }
 
-                await Task.Delay(3000);
+                await Task.Delay(1000);
             }
         }
 

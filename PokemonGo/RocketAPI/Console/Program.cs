@@ -17,7 +17,6 @@ namespace PokemonGo.RocketAPI.Console
 {
     class Program
     {
-        static int pokeballType = 0;
         static int myMaxPokemon = 200;
         static string password = "Poke1234";
 
@@ -33,19 +32,19 @@ namespace PokemonGo.RocketAPI.Console
                     if (args.Count() > 1)
                     {
                         Settings.PtcPassword = args[1];
-                    }                    
+                    }
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     System.Console.WriteLine($"Error in Command Line input");
                     UserInput();
-                }                
+                }
             }
             else
             {
                 UserInput();
             }
-            Task.Run(() => Execute());         
+            Task.Run(() => Execute());
             System.Console.ReadLine();
         }
 
@@ -73,9 +72,10 @@ namespace PokemonGo.RocketAPI.Console
                 Settings.PtcPassword = System.Console.ReadLine();
             }
         }
-        
+
         static async void Execute()
         {
+            ReExecute:
             try
             {
                 var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude);
@@ -108,10 +108,10 @@ namespace PokemonGo.RocketAPI.Console
             }
             catch (Exception e)
             {
-                System.Console.WriteLine($"Exception occurred, Restarting..");                
+                System.Console.WriteLine($"Exception occurred, Restarting..");
                 await Task.Delay(10000);
-                Task.Run(() => Execute());
-            }                       
+                goto ReExecute;
+            }
         }
 
         private static async Task ExecuteFarmingPokestopsAndPokemons(Client client)
@@ -136,25 +136,20 @@ namespace PokemonGo.RocketAPI.Console
                     var inventory = await client.GetInventory();
                     if (inventory != null && inventory.InventoryDelta != null)
                     {
-                        var pokeBalls = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemPokeBall);
-                        var greatBalls = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemGreatBall);
-                        pokeballType = pokeBalls.Count() != 0 && pokeBalls.First().Count != 0 ? (int)MiscEnums.Item.ITEM_POKE_BALL 
-                            : greatBalls.Count() != 0 && greatBalls.First().Count != 0 ?  (int)MiscEnums.Item.ITEM_GREAT_BALL : (int)MiscEnums.Item.ITEM_ULTRA_BALL;
-
                         var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null && p?.PokemonId > 0);
                         var playerData = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PlayerStats).Where(p => p != null && p?.Level > 0);
                         var pData = playerData.FirstOrDefault();
 
                         if (pData != null)
                         {
-                            System.Console.WriteLine($"{Settings.PtcUsername} Level:{pData.Level} %:{Math.Round((Double)(pData.NextLevelXp - pData.Experience)/ (Double)(pData.NextLevelXp - pData.PrevLevelXp), 2) * 100}% PokemonCount:" + pokemons.Count());
+                            System.Console.WriteLine($"{Settings.PtcUsername} Level:{pData.Level} %:{Math.Round((Double)(pData.NextLevelXp - pData.Experience) / (Double)(pData.NextLevelXp - pData.PrevLevelXp), 2) * 100}% PokemonCount:" + pokemons.Count());
                         }
                         else
                         {
-                            System.Console.WriteLine($"PokemonCount:" +  pokemons.Count());
+                            System.Console.WriteLine($"PokemonCount:" + pokemons.Count());
                         }
 
-                        
+
                         if (pokemons.Count() >= myMaxPokemon)
                         {
                             await Client.TransferAllButStrongestUnwantedPokemon(client);
@@ -191,15 +186,65 @@ namespace PokemonGo.RocketAPI.Console
                 var encounterPokemonRespone = await client.EncounterPokemon(pokemon.EncounterId, pokemon.SpawnpointId);
 
                 CatchPokemonResponse caughtPokemonResponse;
-                do
+        
+                var berryUsed = false;
+                var inventoryBalls = await client.GetInventory();
+                var items = inventoryBalls.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData.Item).Where(p => p != null);
+                if(encounterPokemonRespone.WildPokemon != null)
                 {
-                    caughtPokemonResponse = await client.CatchPokemon(pokemon.EncounterId, pokemon.SpawnpointId, pokemon.Latitude, pokemon.Longitude, (MiscEnums.Item)pokeballType); //note: reverted from settings because this should not be part of settings but part of logic
-                } 
-                while(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
+                    var pokeBall = await GetBestBall(encounterPokemonRespone?.WildPokemon, inventoryBalls);
+                    do
+                    {
+                        if (!berryUsed && encounterPokemonRespone.CaptureProbability.CaptureProbability_.First() < 0.4 && items.Where(p => p.Item_ == ItemId.ItemRazzBerry).Count() > 0)
+                        {
+                            berryUsed = true;
+                            System.Console.Write($"Use Rasperry (" + items.Where(p => p.Item_ == ItemId.ItemRazzBerry).First().Count + ")!");
+                            UseItemCaptureRequest useRaspberry = await client.UseCaptureItem(pokemon.EncounterId, AllEnum.ItemId.ItemRazzBerry, pokemon.SpawnpointId);
+                            await Task.Delay(3000);
+                        }
+                        caughtPokemonResponse = await client.CatchPokemon(pokemon.EncounterId, pokemon.SpawnpointId, pokemon.Latitude, pokemon.Longitude, pokeBall);
+                    } while (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
 
-                System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}" : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away.. with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}");
+                    System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}" : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away.. with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}");
+                }
+                
                 await Task.Delay(5000);
             }
+        }
+
+        private static async Task<MiscEnums.Item> GetBestBall(WildPokemon pokemon, GetInventoryResponse inventory)
+        {
+            var pokemonCp = pokemon?.PokemonData?.Cp;
+            var pokeBallsCount = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemPokeBall).Count();
+            var greatBallsCount = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemGreatBall).Count();
+            var ultraBallsCount = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemUltraBall).Count();
+            var masterBallsCount = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemMasterBall).Count();
+
+            if (masterBallsCount > 0 && pokemonCp >= 1000)
+                return MiscEnums.Item.ITEM_MASTER_BALL;
+            else if (ultraBallsCount > 0 && pokemonCp >= 1000)
+                return MiscEnums.Item.ITEM_ULTRA_BALL;
+            else if (greatBallsCount > 0 && pokemonCp >= 1000)
+                return MiscEnums.Item.ITEM_GREAT_BALL;
+
+            if (ultraBallsCount > 0 && pokemonCp >= 600)
+                return MiscEnums.Item.ITEM_ULTRA_BALL;
+            else if (greatBallsCount > 0 && pokemonCp >= 600)
+                return MiscEnums.Item.ITEM_GREAT_BALL;
+
+            if (greatBallsCount > 0 && pokemonCp >= 350)
+                return MiscEnums.Item.ITEM_GREAT_BALL;
+
+            if (pokeBallsCount > 0)
+                return MiscEnums.Item.ITEM_POKE_BALL;
+            if (greatBallsCount > 0)
+                return MiscEnums.Item.ITEM_GREAT_BALL;
+            if (ultraBallsCount > 0)
+                return MiscEnums.Item.ITEM_ULTRA_BALL;
+            if (masterBallsCount > 0)
+                return MiscEnums.Item.ITEM_MASTER_BALL;
+
+            return MiscEnums.Item.ITEM_POKE_BALL;
         }
 
         private static string GetFriendlyItemsString(IEnumerable<FortSearchResponse.Types.ItemAward> items)
@@ -211,13 +256,13 @@ namespace PokemonGo.RocketAPI.Console
 
             return
                 enumerable.GroupBy(i => i.ItemId)
-                          .Select(kvp => new {ItemName = kvp.Key.ToString(), Amount = kvp.Sum(x => x.ItemCount)})
+                          .Select(kvp => new { ItemName = kvp.Key.ToString(), Amount = kvp.Sum(x => x.ItemCount) })
                           .Select(y => $"{y.Amount} x {y.ItemName}")
                           .Aggregate((a, b) => $"{a}, {b}");
         }
 
         static async Task RecycleItems(Client client)
-         {
+        {
             var inventory = await client.GetInventory();
 
             var itemRecycleList = new List<ItemId>
@@ -234,13 +279,13 @@ namespace PokemonGo.RocketAPI.Console
                 .Select(i => i.InventoryItemData?.Item)
                 .Where(p => p != null && itemRecycleList.Contains(p.Item_));
 
-             foreach (var item in items)
-             {
-                 var transfer = await client.RecycleItem((AllEnum.ItemId)item.Item_, item.Count);
-                 System.Console.WriteLine($"Recycled {item.Count}x {(AllEnum.ItemId)item.Item_}");
-                 await Task.Delay(500);
-             }
-      }
+            foreach (var item in items)
+            {
+                var transfer = await client.RecycleItem((AllEnum.ItemId)item.Item_, item.Count);
+                System.Console.WriteLine($"Recycled {item.Count}x {(AllEnum.ItemId)item.Item_}");
+                await Task.Delay(500);
+            }
+        }
 
         static List<FortData> SortRoute(List<FortData> route)
         {
