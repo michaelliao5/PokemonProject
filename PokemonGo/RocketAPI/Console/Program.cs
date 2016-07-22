@@ -18,18 +18,22 @@ namespace PokemonGo.RocketAPI.Console
     class Program
     {
         static int pokeballType = 0;
-        static int myMaxPokemon = 250;
+        static int myMaxPokemon = 200;
         static string password = "Poke1234";
 
         static void Main(string[] args)
         {
-            if (args != null && args.Count() == 1)
+            if (args != null && args.Count() > 0)
             {
                 try
                 {
                     Settings.AuthType = AuthType.Ptc;
                     Settings.PtcUsername = args[0];
                     Settings.PtcPassword = "Poke1234";
+                    if (args.Count() > 1)
+                    {
+                        Settings.PtcPassword = args[1];
+                    }                    
                 }
                 catch(Exception e)
                 {
@@ -91,7 +95,7 @@ namespace PokemonGo.RocketAPI.Console
                 var inventory = await client.GetInventory();
                 var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null);
 
-                await Client.TransferAllButStrongestUnwantedPokemon(client);
+                //await Client.TransferAllButStrongestUnwantedPokemon(client);
 
                 while (true)
                 {
@@ -153,9 +157,7 @@ namespace PokemonGo.RocketAPI.Console
                         
                         if (pokemons.Count() >= myMaxPokemon)
                         {
-                            System.Console.WriteLine($"Pokemon Full");
-                            await Task.Delay(5000);
-                            Task.Run(() => Execute());
+                            await Client.TransferAllButStrongestUnwantedPokemon(client);
                         }
 
                         await ExecuteCatchAllNearbyPokemons(client);

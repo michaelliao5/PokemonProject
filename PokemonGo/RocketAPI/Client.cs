@@ -283,59 +283,19 @@ namespace PokemonGo.RocketAPI
         {
             System.Console.WriteLine("[!] firing up the meat grinder");
 
-            var unwantedPokemonTypes = new[]
+            var pokemonTypes = Enum.GetValues(typeof(PokemonId)).Cast<PokemonId>();
+            var wantedPokemons = new List<PokemonId>
             {
-                 PokemonId.Pidgey,
-                 PokemonId.Rattata,
-                 PokemonId.Weedle,
-                 PokemonId.Zubat,
-                 PokemonId.Caterpie,
-                 PokemonId.Pidgeotto,
-                 PokemonId.NidoranFemale,
-                 PokemonId.NidoranMale,
-                 PokemonId.Paras,
-                 PokemonId.Venonat,
-                 PokemonId.Psyduck,
-                 PokemonId.Poliwag,
-                 PokemonId.Slowpoke,
-                 PokemonId.Drowzee,
-                 PokemonId.Gastly,
-                 PokemonId.Goldeen,
-                 PokemonId.Staryu,
-                 PokemonId.Magikarp,
-                 PokemonId.Eevee,
-                 PokemonId.Dratini,
-                 PokemonId.Pinsir,
-                 PokemonId.Ponyta,
-                 PokemonId.Bellsprout,
-                 PokemonId.Exeggcute,
-                 PokemonId.Geoduge,
-                 PokemonId.Oddish,
-                 PokemonId.Doduo,
-                 PokemonId.Ekans,
-                 PokemonId.Sandshrew,
-                 PokemonId.Fearow,
-                 PokemonId.Vulpix,
-                 PokemonId.Voltorb,
-                 PokemonId.Squirtle,
-                 PokemonId.Spearow,
-                 PokemonId.Seel,
-                 PokemonId.Rhyhorn,
-                 PokemonId.Raticate,
-                 PokemonId.Meowth,
-                 PokemonId.Mankey,
-                 PokemonId.Magnemite,
-                 PokemonId.Machop,
-                 PokemonId.Krabby,
-                 PokemonId.Graveler,
-                 PokemonId.Dodrio,
-                 PokemonId.Diglett,
-             };
+                PokemonId.Lapras,
+                PokemonId.Snorlax,
+                PokemonId.Magmar,
+                PokemonId.Vaporeon
+            };
 
             var inventory = await client.GetInventory();
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null && p?.PokemonId > 0);
 
-            foreach (var unwantedPokemonType in unwantedPokemonTypes)
+            foreach (var unwantedPokemonType in pokemonTypes.Where(x => !wantedPokemons.Contains(x)))
             {
                 //var candy = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonFamily).Where(p => p != null && p?.FamilyId == unwantedPokemonType);
 
