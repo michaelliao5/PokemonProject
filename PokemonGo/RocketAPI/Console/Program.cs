@@ -19,12 +19,37 @@ namespace PokemonGo.RocketAPI.Console
     {
         static int pokeballType = 0;
         static int myMaxPokemon = 250;
+        static string password = "Poke1234";
 
         static void Main(string[] args)
         {
+            if (args != null && args.Count() == 1)
+            {
+                try
+                {
+                    Settings.AuthType = AuthType.Ptc;
+                    Settings.PtcUsername = args[0];
+                    Settings.PtcPassword = "Poke1234";
+                }
+                catch(Exception e)
+                {
+                    System.Console.WriteLine($"Error in Command Line input");
+                    UserInput();
+                }                
+            }
+            else
+            {
+                UserInput();
+            }
+            Task.Run(() => Execute());         
+            System.Console.ReadLine();
+        }
+
+        static void UserInput()
+        {
             System.Console.WriteLine($"Location Set to New York Central Park by Default");
             System.Console.WriteLine($"Input Longitude, press enter if going with New York:");
-            var longi = System.Console.ReadLine();            
+            var longi = System.Console.ReadLine();
             if (!string.IsNullOrEmpty(longi))
             {
                 System.Console.WriteLine($"Input Latitude:");
@@ -38,16 +63,11 @@ namespace PokemonGo.RocketAPI.Console
             if (ptc == "y" || Settings.AuthType == AuthType.Ptc)
             {
                 Settings.AuthType = AuthType.Ptc;
-                string username, password = "";
                 System.Console.WriteLine($"PTC Username:");
                 Settings.PtcUsername = System.Console.ReadLine();
                 System.Console.WriteLine($"PTC Password:");
                 Settings.PtcPassword = System.Console.ReadLine();
             }
-            
-            
-            Task.Run(() => Execute());         
-            System.Console.ReadLine();
         }
         
         static async void Execute()
@@ -69,7 +89,7 @@ namespace PokemonGo.RocketAPI.Console
                 var settings = await client.GetSettings();
                 var mapObjects = await client.GetMapObjects();
                 var inventory = await client.GetInventory();
-                var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null && p?.PokemonId > 0);
+                var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null);
 
                 await Client.TransferAllButStrongestUnwantedPokemon(client);
 
@@ -123,7 +143,7 @@ namespace PokemonGo.RocketAPI.Console
 
                         if (pData != null)
                         {
-                            System.Console.WriteLine($"{Settings.PtcUsername} Level:{pData.Level} %:{Math.Round(((Double)pData.Experience/ (Double)pData.NextLevelXp), 2) * 100}% PokemonCount:" + pokemons.Count());
+                            System.Console.WriteLine($"{Settings.PtcUsername} Level:{pData.Level} %:{Math.Round((Double)(pData.NextLevelXp - pData.Experience)/ (Double)(pData.NextLevelXp - pData.PrevLevelXp), 2) * 100}% PokemonCount:" + pokemons.Count());
                         }
                         else
                         {
