@@ -32,7 +32,15 @@ namespace PokemonGo.RocketAPI.Console
                     Settings.PtcPassword = "Poke1234";
                     if (args.Count() > 1)
                     {
-                        Settings.PtcPassword = args[1];
+                        if(args[0].Trim().ToLowerInvariant() == "google")
+                        {
+                            Settings.AuthType = AuthType.Google;
+                            Settings.PtcUsername = args[1];
+                        }
+                        else
+                        {
+                            Settings.PtcPassword = args[1];
+                        }                        
                     }
                 }
                 catch (Exception e)
