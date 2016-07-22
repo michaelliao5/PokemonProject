@@ -142,7 +142,11 @@ namespace PokemonGo.RocketAPI.Console
 
                         if (pData != null)
                         {
-                            System.Console.WriteLine($"{Settings.PtcUsername} Level:{pData.Level} %:{Math.Round((Double)(pData.NextLevelXp - pData.Experience) / (Double)(pData.NextLevelXp - pData.PrevLevelXp), 2) * 100}% PokemonCount:" + pokemons.Count());
+                            System.Console.WriteLine($"PokemonCount:" + pokemons.Count());
+                            System.Console.Title = string.Format("{0} level {1:0} - ({2:0} / {3:0})",
+                              Settings.PtcUsername,+pData.Level,
+                             +(pData.Experience - pData.PrevLevelXp),
+                              +(pData.NextLevelXp - pData.PrevLevelXp));
                         }
                         else
                         {
@@ -195,7 +199,7 @@ namespace PokemonGo.RocketAPI.Console
                     var pokeBall = await GetBestBall(encounterPokemonRespone?.WildPokemon, inventoryBalls);
                     do
                     {
-                        if (!berryUsed && encounterPokemonRespone.CaptureProbability.CaptureProbability_.First() < 0.4 && items.Where(p => p.Item_ == ItemId.ItemRazzBerry).Count() > 0)
+                        if (!berryUsed && encounterPokemonRespone.CaptureProbability.CaptureProbability_.First() < 0.4 && items.Where(p => p.Item_ == ItemId.ItemRazzBerry).Count() > 0 && items.Where(p => p.Item_ == ItemId.ItemRazzBerry).First().Count > 0)
                         {
                             berryUsed = true;
                             System.Console.Write($"Use Rasperry (" + items.Where(p => p.Item_ == ItemId.ItemRazzBerry).First().Count + ")!");
