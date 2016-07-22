@@ -18,6 +18,7 @@ namespace PokemonGo.RocketAPI.Console
     class Program
     {
         static int myMaxPokemon = 250;
+        static int basePokemonCount = 250;        
         static string password = "Poke1234";
 
         static void Main(string[] args)
@@ -141,7 +142,7 @@ namespace PokemonGo.RocketAPI.Console
                         var playerData = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PlayerStats).Where(p => p != null && p?.Level > 0);
                         var pData = playerData.FirstOrDefault();
                         var pokeUpgrades = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.InventoryUpgrades).Where(p => p != null).SelectMany(x => x.InventoryUpgrades_).Where(x => x.UpgradeType == InventoryUpgradeType.IncreasePokemonStorage).Count();
-                        myMaxPokemon += pokeUpgrades * 50;
+                        myMaxPokemon = basePokemonCount + pokeUpgrades * 50;
 
                         System.Console.WriteLine($"PokemonCount:" + pokemons.Count() + " Out of " + myMaxPokemon);
 
