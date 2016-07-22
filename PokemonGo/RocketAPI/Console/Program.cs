@@ -17,7 +17,7 @@ namespace PokemonGo.RocketAPI.Console
 {
     class Program
     {
-        static int myMaxPokemon = 200;
+        static int myMaxPokemon = 250;
         static string password = "Poke1234";
 
         static void Main(string[] args)
@@ -134,27 +134,27 @@ namespace PokemonGo.RocketAPI.Console
                 {
                     System.Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Farmed XP: {fortSearch.ExperienceAwarded}, Gems: { fortSearch.GemsAwarded}, Eggs: {fortSearch.PokemonDataEgg} Items: {GetFriendlyItemsString(fortSearch.ItemsAwarded)}");
                     var inventory = await client.GetInventory();
+                    var settings = await client.GetSettings();
                     if (inventory != null && inventory.InventoryDelta != null)
                     {
-                        var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null && p?.PokemonId > 0);
+                        var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null);
                         var playerData = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PlayerStats).Where(p => p != null && p?.Level > 0);
                         var pData = playerData.FirstOrDefault();
+                        var pokeUpgrades = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.InventoryUpgrades).Where(p => p != null).SelectMany(x => x.InventoryUpgrades_).Where(x => x.UpgradeType == InventoryUpgradeType.IncreasePokemonStorage).Count();
+                        myMaxPokemon += pokeUpgrades * 50;
+
+                        System.Console.WriteLine($"PokemonCount:" + pokemons.Count() + " Out of " + myMaxPokemon);
 
                         if (pData != null)
                         {
-                            System.Console.WriteLine($"PokemonCount:" + pokemons.Count());
                             System.Console.Title = string.Format("{0} level {1:0} - ({2:0} / {3:0})",
                               Settings.PtcUsername,+pData.Level,
                              +(pData.Experience - pData.PrevLevelXp),
                               +(pData.NextLevelXp - pData.PrevLevelXp));
                         }
-                        else
-                        {
-                            System.Console.WriteLine($"PokemonCount:" + pokemons.Count());
-                        }
 
 
-                        if (pokemons.Count() >= myMaxPokemon)
+                        if (pokemons.Count() >= myMaxPokemon-20)
                         {
                             await Client.TransferAllButStrongestUnwantedPokemon(client);
                         }
