@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using PokemonGo.RocketAPI.Enums;
 using PokemonGo.RocketAPI.Helpers;
+using System.Windows.Forms;
 
 namespace PokemonGo.RocketAPI.Login
 {
@@ -22,8 +23,11 @@ namespace PokemonGo.RocketAPI.Login
         internal static async Task<TokenResponseModel> GetAccessToken()
         {
             var deviceCodeResponse = await GetDeviceCode();
-            Console.WriteLine("Please visit " + deviceCodeResponse.verification_url + " and enter " + deviceCodeResponse.user_code);
-
+            Console.WriteLine("Please visit " + deviceCodeResponse.verification_url + " and enter " + deviceCodeResponse.user_code + " already copied to clipboard");
+            Thread thread = new Thread(() => Clipboard.SetText(deviceCodeResponse.user_code));
+            thread.SetApartmentState(ApartmentState.STA); //Set the thread to STA
+            thread.Start();
+            thread.Join();
             //Poll until user submitted code..
             TokenResponseModel tokenResponse;
             do
