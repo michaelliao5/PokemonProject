@@ -14,6 +14,15 @@ namespace PokemonGo.RocketAPI.Console
 
         public static double DefaultLatitude = 40.764858121285975;
         public static double DefaultLongitude = -73.97272288799286;
+        public static double SantaMonicaLatitude = 34.009713;
+        public static double SantaMonicaLongitude = -118.496104;
+        public static double SanFranLatitude = 34.009713;
+        public static double SanFranLongitude = -118.496104;
+        public static double SidneyLatitude = -33.86467850677313;
+        public static double SidneyLongitude = 151.21024131774902;
+
+        //San Fran 37.80788523279169,-122.41833686828613
+        //Sydney -33.86467850677313,151.21024131774902
 
         public static ICollection<KeyValuePair<AllEnum.ItemId, int>> ItemRecycleFilter = new List<KeyValuePair<AllEnum.ItemId, int>>();
 

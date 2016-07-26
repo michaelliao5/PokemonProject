@@ -40,6 +40,16 @@ namespace PokemonGo.RocketAPI.Console
                         else
                         {
                             Settings.PtcPassword = args[1];
+                        }
+                        if(args.Count() == 4)
+                        {
+                            Settings.DefaultLongitude = long.Parse(args[3]);
+                            Settings.DefaultLatitude = long.Parse(args[2]);
+                            System.Console.WriteLine($"Location Set to Lat: {Settings.DefaultLatitude} Long: {Settings.DefaultLongitude}");
+                        }
+                        else
+                        {
+                            System.Console.WriteLine($"Location Set to New York");
                         }                        
                     }
                 }
@@ -60,13 +70,31 @@ namespace PokemonGo.RocketAPI.Console
         static void UserInput()
         {
             System.Console.WriteLine($"Location Set to New York Central Park by Default");
-            System.Console.WriteLine($"Input Longitude, press enter if going with New York:");
+            System.Console.WriteLine($"Input Longitude, press enter if going with New York, Enter 1 to Santa Monica, Enter 2 to San Fran, Enter 3 to Sydney:");
             var longi = System.Console.ReadLine();
             if (!string.IsNullOrEmpty(longi))
             {
-                System.Console.WriteLine($"Input Latitude:");
-                Settings.DefaultLatitude = Double.Parse(System.Console.ReadLine());
-                Settings.DefaultLongitude = Double.Parse(longi);
+                if(longi.Trim() == "1")
+                {
+                    Settings.DefaultLatitude = Settings.SantaMonicaLatitude;
+                    Settings.DefaultLongitude = Settings.SantaMonicaLongitude;
+                }
+                else if(longi.Trim() == "3")
+                {
+                    Settings.DefaultLatitude = Settings.SidneyLatitude;
+                    Settings.DefaultLongitude = Settings.SidneyLongitude;
+                }
+                else if (longi.Trim() == "2")
+                {
+                    Settings.DefaultLatitude = Settings.SanFranLatitude;
+                    Settings.DefaultLongitude = Settings.SanFranLongitude;
+                }
+                else
+                {
+                    System.Console.WriteLine($"Input Latitude:");
+                    Settings.DefaultLatitude = Double.Parse(System.Console.ReadLine());
+                    Settings.DefaultLongitude = Double.Parse(longi);
+                }                
             }
 
             System.Console.WriteLine($"Using PTC? (y/n)?");
@@ -285,14 +313,13 @@ namespace PokemonGo.RocketAPI.Console
                 ItemId.ItemRevive,
                 ItemId.ItemMaxPotion,
                 ItemId.ItemHyperPotion,
-                ItemId.ItemRazzBerry,
             };
 
             var items = inventory.InventoryDelta.InventoryItems
                 .Select(i => i.InventoryItemData?.Item)
                 .Where(p => p != null && itemRecycleList.Contains(p.Item_));
 
-            foreach (var item in items)
+            foreach (var item in items.Where(x => x.Count > 0))
             {
                 var transfer = await client.RecycleItem((AllEnum.ItemId)item.Item_, item.Count);
                 System.Console.WriteLine($"Recycled {item.Count}x {(AllEnum.ItemId)item.Item_}");
