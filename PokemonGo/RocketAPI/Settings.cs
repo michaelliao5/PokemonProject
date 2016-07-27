@@ -1,23 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using PokemonGo.RocketAPI.Enums;
 
 namespace PokemonGo.RocketAPI
 {
-    public static class Settings
+    public class Settings
     {
-        //Fetch these settings from intercepting the /auth call in headers and body (only needed for google auth)
-        public const bool UsePTC = false;
-        public const string PtcUsername = "";
-        public const string PtcPassword = ""
-        public const string DeviceId = "cool-device-id";
-        public const string ClientSig = "fake";
-        public const string LongDurationToken = "fakeid";
-        public const double DefaultLatitude = 40.764858121285975;
-        public const double DefaultLongitude = -73.97272288799286;
-        //40.764858121285975,-73.97272288799286
-
+        public Settings() { }
+        public AuthType AuthType { get; set; }
+        public double DefaultLatitude { get; set; }
+        public double DefaultLongitude { get; set; }
+        public double DefaultAltitude { get; set; }
+        public string GoogleRefreshToken { get; set; }
+        public string PtcPassword { get; set; }
+        public string PtcUsername { get; set; }
     }
 }

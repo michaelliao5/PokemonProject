@@ -1,4 +1,4 @@
-﻿using AllEnum;
+﻿using POGOProtos.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +9,34 @@ namespace PokemonGo.RocketAPI.Console
 {
     public static class Common
     {
-        public static List<PokemonId> berryPokemons = new List<PokemonId>
+        public static List<PokemonId> WantedPokemons = new List<PokemonId>
+        {
+            PokemonId.Lapras,
+            PokemonId.Snorlax,
+            PokemonId.Magmar,
+            PokemonId.Dragonite,
+            PokemonId.Exeggutor,
+            PokemonId.Vaporeon,
+            PokemonId.Golduck,
+            PokemonId.Arcanine,
+            PokemonId.Flareon,
+            PokemonId.Venusaur,
+            PokemonId.Wigglytuff,
+            PokemonId.Gyarados,
+            PokemonId.Victreebel,
+            PokemonId.Poliwrath,
+            PokemonId.Vileplume,
+            PokemonId.Golem,
+            PokemonId.Rhydon,
+            PokemonId.Jolteon,
+            PokemonId.Rapidash,
+            PokemonId.Clefable,
+            PokemonId.Starmie,
+            PokemonId.Scyther,
+            PokemonId.Alakazam,
+        };
+
+        public static List<PokemonId> BerryPokemons = new List<PokemonId>
         {
             PokemonId.Lapras,
                 PokemonId.Snorlax,
@@ -24,7 +51,7 @@ namespace PokemonGo.RocketAPI.Console
                 PokemonId.Wigglytuff,
                 PokemonId.Electabuzz,
                 PokemonId.Gyarados,
-                PokemonId.Victreebell,
+                PokemonId.Victreebel,
                 PokemonId.Poliwrath,
                 PokemonId.Vileplume,
                 PokemonId.Golem,
@@ -34,7 +61,7 @@ namespace PokemonGo.RocketAPI.Console
                 PokemonId.Clefable,
                 PokemonId.Starmie,
                 PokemonId.Scyther,
-                PokemonId.Alakhazam,
+                PokemonId.Alakazam,
                 PokemonId.Dragonair,
                 PokemonId.Dratini,
         };

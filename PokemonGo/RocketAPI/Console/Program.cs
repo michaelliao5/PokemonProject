@@ -5,13 +5,18 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using AllEnum;
 using Google.Protobuf;
 using PokemonGo.RocketAPI.Enums;
 using PokemonGo.RocketAPI.Extensions;
-using PokemonGo.RocketAPI.GeneratedCode;
 using PokemonGo.RocketAPI.Helpers;
 using System.Timers;
+using POGOProtos.Inventory;
+using POGOProtos.Map.Fort;
+using POGOProtos.Networking.Responses;
+using POGOProtos.Map.Pokemon;
+using POGOProtos.Enums;
+using POGOProtos.Inventory.Item;
+using POGOProtos.Data;
 
 namespace PokemonGo.RocketAPI.Console
 {
@@ -121,29 +126,22 @@ namespace PokemonGo.RocketAPI.Console
                     Settings.DefaultLongitude = Settings.DratiniLongitude;
                     System.Console.WriteLine("Starting Dratini Farm");
                 }
-                var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude);
+                var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.PtcUsername, Settings.PtcPassword, Settings.GoogleRefreshToken, Settings.AuthType);
 
                 if (Settings.AuthType == AuthType.Ptc)
                 {
-                    await client.DoPtcLogin(Settings.PtcUsername, Settings.PtcPassword);
+                    await client.Login.DoPtcLogin();
                 }
                 else if (Settings.AuthType == AuthType.Google)
-                    Settings.GoogleRefreshToken = await client.DoGoogleLogin(Settings.GoogleRefreshToken);
-
-                await client.SetServer();
-
-                var profile = await client.GetProfile();
-                var settings = await client.GetSettings();
-                var mapObjects = await client.GetMapObjects();
-                var inventory = await client.GetInventory();
-
-                //await Client.TransferAllButStrongestUnwantedPokemon(client);
-
+                    await client.Login.DoGoogleLogin();                
+                
+                var inventory = await client.Inventory.GetInventory();
+                
                 while (true)
                 {
                     if(Settings.DratiniMode)
                     {
-                        var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null);
+                        var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null);
                         var pokeUpgrades = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.InventoryUpgrades).Where(p => p != null).SelectMany(x => x.InventoryUpgrades_).Where(x => x.UpgradeType == InventoryUpgradeType.IncreasePokemonStorage).Count();
                         myMaxPokemon = basePokemonCount + pokeUpgrades * 50;
 
@@ -152,7 +150,7 @@ namespace PokemonGo.RocketAPI.Console
 
                         if (pokemons.Count() >= myMaxPokemon - 20)
                         {
-                            await Client.TransferAllButStrongestUnwantedPokemon(client);
+                            await TransferAllButStrongestUnwantedPokemon(client);
                         }
 
                         await ExecuteFarmingDratinis(client);
@@ -163,7 +161,7 @@ namespace PokemonGo.RocketAPI.Console
                     }
                     
                     System.Console.WriteLine("Resetting Player Position");
-                    var update = await client.UpdatePlayerLocation(Settings.DefaultLatitude, Settings.DefaultLongitude);
+                    var update = await client.Player.UpdatePlayerLocation(Settings.DefaultLatitude, Settings.DefaultLongitude, 100);
                     await RecycleItems(client);
                     if(Settings.DratiniMode)
                     {
@@ -185,11 +183,11 @@ namespace PokemonGo.RocketAPI.Console
 
         private static async Task ExecuteFarmingDratinis(Client client)
         {
-            var mapObjects = await client.GetMapObjects();
+            var mapObjects = await client.Map.GetMapObjects();
             
             foreach (var coord in Common.Coordinates)
             {
-                var update = await client.UpdatePlayerLocation(coord.Item1, coord.Item2);
+                var update = await client.Player.UpdatePlayerLocation(coord.Item1, coord.Item2, 100);
                
                 await ExecuteCatchAllNearbyPokemons(client);
             }
@@ -197,28 +195,27 @@ namespace PokemonGo.RocketAPI.Console
 
         private static async Task ExecuteFarmingPokestopsAndPokemons(Client client)
         {
-            var mapObjects = await client.GetMapObjects();
+            var mapObjects = await client.Map.GetMapObjects();
 
             var pokeStops = mapObjects.MapCells.SelectMany(i => i.Forts).Where(i => i.Type == FortType.Checkpoint && i.CooldownCompleteTimestampMs < DateTime.UtcNow.ToUnixTime());
-            pokeStops = SortRoute(pokeStops.ToList());
+            pokeStops = Helper.SortRoute(pokeStops.ToList());
 
             int waitCount = 0;
             Timer timer = new Timer();
 
             foreach (var pokeStop in pokeStops)
             {
-                var update = await client.UpdatePlayerLocation(pokeStop.Latitude, pokeStop.Longitude);
-                var fortInfo = await client.GetFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
-                var fortSearch = await client.SearchFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
+                var update = await client.Player.UpdatePlayerLocation(pokeStop.Latitude, pokeStop.Longitude, 100);
+                var fortInfo = await client.Fort.GetFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
+                var fortSearch = await client.Fort.SearchFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
 
                 if (fortSearch != null)
                 {
-                    System.Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Farmed XP: {fortSearch.ExperienceAwarded}, Gems: { fortSearch.GemsAwarded}, Eggs: {fortSearch.PokemonDataEgg} Items: {GetFriendlyItemsString(fortSearch.ItemsAwarded)}");
-                    var inventory = await client.GetInventory();
-                    var settings = await client.GetSettings();
+                    System.Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Farmed XP: {fortSearch.ExperienceAwarded}, Gems: { fortSearch.GemsAwarded}, Eggs: {fortSearch.PokemonDataEgg} Items: {Helper.GetFriendlyItemsString(fortSearch.ItemsAwarded)}");
+                    var inventory = await client.Inventory.GetInventory();
                     if (inventory != null && inventory.InventoryDelta != null)
                     {
-                        var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null);
+                        var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null);
                         var playerData = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PlayerStats).Where(p => p != null && p?.Level > 0);
                         var pData = playerData.FirstOrDefault();
                         var pokeUpgrades = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.InventoryUpgrades).Where(p => p != null).SelectMany(x => x.InventoryUpgrades_).Where(x => x.UpgradeType == InventoryUpgradeType.IncreasePokemonStorage).Count();
@@ -237,9 +234,14 @@ namespace PokemonGo.RocketAPI.Console
 
                         if (pokemons.Count() >= myMaxPokemon-20)
                         {
-                            await Client.TransferAllButStrongestUnwantedPokemon(client);
+                            await TransferAllButStrongestUnwantedPokemon(client);
                         }
 
+                        if(pokeStop.LureInfo != null)
+                        {
+                            await ExecuteCatchLurePokemonsTask(client, pokeStop);
+                        }
+                        
                         await ExecuteCatchAllNearbyPokemons(client);
 
                         if (fortSearch.ExperienceAwarded == 0)
@@ -259,9 +261,51 @@ namespace PokemonGo.RocketAPI.Console
             }
         }
 
+        private static async Task ExecuteCatchLurePokemonsTask(Client client, FortData fort)
+        {
+            System.Console.WriteLine("Looking for lure pokemon..");
+
+            var fortId = fort.Id;
+
+            var pokemonId = fort.LureInfo.ActivePokemonId;
+
+            var encounterId = fort.LureInfo.EncounterId;
+            var encounter = await client.Encounter.EncounterLurePokemon(encounterId, fortId);
+
+            if (encounter.Result == DiskEncounterResponse.Types.Result.Success)
+            {
+                var berryUsed = false;
+                var inventoryBalls = await client.Inventory.GetInventory();
+                var items = inventoryBalls.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData.Item).Where(p => p != null);
+                CatchPokemonResponse caughtPokemonResponse;
+                var pokeBall = await Helper.GetBestBall(encounter.PokemonData.Cp, inventoryBalls);
+                    do
+                    {
+                        if (!berryUsed && Common.BerryPokemons.Contains(pokemonId) && items.Where(p => p.ItemId == ItemId.ItemRazzBerry).Count() > 0 && items.Where(p => p.ItemId == ItemId.ItemRazzBerry).First().Count > 0)
+                        {
+                            berryUsed = true;
+                            System.Console.Write($"Use Rasperry (" + items.Where(p => p.ItemId == ItemId.ItemRazzBerry).First().Count + ")!");
+                            await client.Encounter.UseCaptureItem(encounterId, ItemId.ItemRazzBerry, fort.Id);
+                            await Task.Delay(3000);
+                        }
+                        caughtPokemonResponse = await client.Encounter.CatchPokemon(encounterId, fort.Id, pokeBall);
+                    } while (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
+
+                    System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? 
+                        $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemonId} with CP {encounter?.PokemonData?.Cp} IV {Math.Round(PokemonInfo.CalculatePokemonPerfection(encounter?.PokemonData), 2)}"
+                        : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemonId} got away.. ");
+            
+
+                await client.Encounter.CatchPokemon(encounterId, fort.Id, pokeBall);
+            }else
+            {
+                System.Console.WriteLine($"Encounter problem: Lure Pokemon {encounter.Result}");
+            }
+        }
+
         private static async Task ExecuteCatchAllNearbyPokemons(Client client)
         {
-            var mapObjects = await client.GetMapObjects();
+            var mapObjects = await client.Map.GetMapObjects();
 
             var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons);
 
@@ -272,34 +316,36 @@ namespace PokemonGo.RocketAPI.Console
 
             foreach (var pokemon in pokemons)
             {
-                var update = await client.UpdatePlayerLocation(pokemon.Latitude, pokemon.Longitude);
-                var encounterPokemonRespone = await client.EncounterPokemon(pokemon.EncounterId, pokemon.SpawnpointId);
+                var update = await client.Player.UpdatePlayerLocation(pokemon.Latitude, pokemon.Longitude, 100);
+                var encounterPokemonRespone = await client.Encounter.EncounterPokemon(pokemon.EncounterId, pokemon.SpawnPointId);
 
                 CatchPokemonResponse caughtPokemonResponse;
-        
+
                 var berryUsed = false;
-                var inventoryBalls = await client.GetInventory();
+                var inventoryBalls = await client.Inventory.GetInventory();
                 var items = inventoryBalls.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData.Item).Where(p => p != null);
-                if(encounterPokemonRespone.WildPokemon != null)
+                if (encounterPokemonRespone.WildPokemon != null)
                 {
-                    var pokeBall = await GetBestBall(encounterPokemonRespone?.WildPokemon, inventoryBalls);
+                    var pokeBall = await Helper.GetBestBall(encounterPokemonRespone.WildPokemon.PokemonData.Cp, inventoryBalls);
                     do
                     {
-                        if (!berryUsed && encounterPokemonRespone.CaptureProbability.CaptureProbability_.First() < 0.4 && Common.berryPokemons.Contains(pokemon.PokemonId) && items.Where(p => p.Item_ == ItemId.ItemRazzBerry).Count() > 0 && items.Where(p => p.Item_ == ItemId.ItemRazzBerry).First().Count > 0)
+                        if (!berryUsed && encounterPokemonRespone.CaptureProbability.CaptureProbability_.First() < 0.4 && Common.BerryPokemons.Contains(pokemon.PokemonId) && items.Where(p => p.ItemId == ItemId.ItemRazzBerry).Count() > 0 && items.Where(p => p.ItemId == ItemId.ItemRazzBerry).First().Count > 0)
                         {
                             berryUsed = true;
-                            System.Console.Write($"Use Rasperry (" + items.Where(p => p.Item_ == ItemId.ItemRazzBerry).First().Count + ")!");
-                            UseItemCaptureRequest useRaspberry = await client.UseCaptureItem(pokemon.EncounterId, AllEnum.ItemId.ItemRazzBerry, pokemon.SpawnpointId);
+                            System.Console.Write($"Use Rasperry (" + items.Where(p => p.ItemId == ItemId.ItemRazzBerry).First().Count + ")!");
+                            await client.Encounter.UseCaptureItem(pokemon.EncounterId, ItemId.ItemRazzBerry, pokemon.SpawnPointId);
                             await Task.Delay(3000);
                         }
-                        caughtPokemonResponse = await client.CatchPokemon(pokemon.EncounterId, pokemon.SpawnpointId, pokemon.Latitude, pokemon.Longitude, pokeBall);
+                        caughtPokemonResponse = await client.Encounter.CatchPokemon(pokemon.EncounterId, pokemon.SpawnPointId, pokeBall);
                     } while (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
 
-                    System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}" : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away.. with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}");
+                    System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess 
+                        ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}  IV {Math.Round(PokemonInfo.CalculatePokemonPerfection(encounterPokemonRespone?.WildPokemon?.PokemonData), 2)}" 
+                        : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away..");
                 }
-                if(Settings.DratiniMode)
+                if (Settings.DratiniMode)
                 {
-                    var families = await GetPokemonFamilies(inventoryBalls);
+                    var families = await Helper.GetPokemonFamilies(inventoryBalls);
                     System.Console.Title = string.Format($"{Settings.PtcUsername} Dratini Candy: {families.First(x => x.FamilyId == PokemonFamilyId.FamilyDratini)?.Candy}");
                 }
 
@@ -307,76 +353,75 @@ namespace PokemonGo.RocketAPI.Console
             }
         }
 
-        private static async Task<List<PokemonFamily>> GetPokemonFamilies(GetInventoryResponse inventory)
+        private static async Task TransferAllButStrongestUnwantedPokemon(Client client)
         {
-            var families = from item in inventory.InventoryDelta.InventoryItems
-                           where item.InventoryItemData?.PokemonFamily != null
-                           where item.InventoryItemData?.PokemonFamily.FamilyId != PokemonFamilyId.FamilyUnset
-                           group item by item.InventoryItemData?.PokemonFamily.FamilyId into family
-                           select new PokemonFamily
-                           {
-                               FamilyId = family.First().InventoryItemData.PokemonFamily.FamilyId,
-                               Candy = family.First().InventoryItemData.PokemonFamily.Candy
-                           };
+            System.Console.WriteLine("Transferring Pokemon");
+            var pokemonTypes = Enum.GetValues(typeof(PokemonId)).Cast<PokemonId>();
+            var inventory = await client.Inventory.GetInventory();
+            var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
 
+            foreach (var unwantedPokemonType in pokemonTypes.Where(x => !Common.WantedPokemons.Contains(x)))
+            {
+                var pokemonOfDesiredType = pokemons.Where(p => p.PokemonId == unwantedPokemonType)
+                                                   .OrderByDescending(p => Settings.UsingIV ? PokemonInfo.CalculatePokemonPerfection(p) : p.Cp)
+                                                   .ToList();
 
-            return families.ToList();
+                var unwantedPokemon = new List<PokemonData>();
+
+                if (unwantedPokemonType == PokemonId.Dratini || unwantedPokemonType == PokemonId.Eevee)
+                {
+                    if (pokemonOfDesiredType.Count > 4)
+                    {
+                        unwantedPokemon = pokemonOfDesiredType.Skip(4) // keep the strongest one for potential battle-evolving
+                                                          .ToList();
+                    }
+                }
+                else
+                {
+                    unwantedPokemon = pokemonOfDesiredType.Skip(1) // keep the strongest one for potential battle-evolving
+                                                          .ToList();
+                }
+
+                System.Console.WriteLine($"Transfering {unwantedPokemon.Count} pokemons of type {unwantedPokemonType}");
+                await TransferAllGivenPokemons(client, unwantedPokemon);
+            }
+
+            System.Console.WriteLine("[!] finished Transferring");
         }
 
-        private static async Task<MiscEnums.Item> GetBestBall(WildPokemon pokemon, GetInventoryResponse inventory)
+        private static async Task TransferAllGivenPokemons(Client client, List<PokemonData> unwantedPokemons)
         {
-            var pokemonCp = pokemon?.PokemonData?.Cp;
-            var pokeBallsCount = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemPokeBall).FirstOrDefault()?.Count ?? 0;
-            var greatBallsCount = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemGreatBall).FirstOrDefault()?.Count ?? 0;
-            var ultraBallsCount = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemUltraBall).FirstOrDefault()?.Count ?? 0;
-            var masterBallsCount = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.Item).Where(x => x != null && x.Item_ == ItemId.ItemMasterBall).FirstOrDefault()?.Count ?? 0;
+            foreach (var pokemon in unwantedPokemons)
+            {
+                var transferPokemonResponse = await client.Inventory.TransferPokemon(pokemon.Id);
 
-            System.Console.WriteLine($"Pokeballs Left: {pokeBallsCount + greatBallsCount + ultraBallsCount}");
+                /*
+                ReleasePokemonOutProto.Status {
+                   UNSET = 0;
+                   SUCCESS = 1;
+                   POKEMON_DEPLOYED = 2;
+                   FAILED = 3;
+                   ERROR_POKEMON_IS_EGG = 4;
+                }*/
 
-            if (masterBallsCount > 0 && pokemonCp >= 1000)
-                return MiscEnums.Item.ITEM_MASTER_BALL;
-            else if (ultraBallsCount > 0 && pokemonCp >= 1500)
-                return MiscEnums.Item.ITEM_ULTRA_BALL;
-            else if (greatBallsCount > 0 && pokemonCp >= 1000)
-                return MiscEnums.Item.ITEM_GREAT_BALL;
+                if (transferPokemonResponse.Result == ReleasePokemonResponse.Types.Result.Success)
+                {
+                    System.Console.WriteLine($"Transferred {pokemon.PokemonId}");
+                }
+                else
+                {
+                    var status = transferPokemonResponse.Result;
 
-            if (ultraBallsCount > 0 && pokemonCp >= 1500)
-                return MiscEnums.Item.ITEM_ULTRA_BALL;
-            else if (greatBallsCount > 0 && pokemonCp >= 1000)
-                return MiscEnums.Item.ITEM_GREAT_BALL;
+                    System.Console.WriteLine($"Somehow failed to transfer {pokemon.PokemonId}. ReleasePokemonOutProto.Status was {status.ToString()}");
+                }
 
-            if (greatBallsCount > 0 && pokemonCp >= 1000)
-                return MiscEnums.Item.ITEM_GREAT_BALL;
-
-            if (pokeBallsCount > 0)
-                return MiscEnums.Item.ITEM_POKE_BALL;
-            if (greatBallsCount > 0)
-                return MiscEnums.Item.ITEM_GREAT_BALL;
-            if (ultraBallsCount > 0)
-                return MiscEnums.Item.ITEM_ULTRA_BALL;
-            if (masterBallsCount > 0)
-                return MiscEnums.Item.ITEM_MASTER_BALL;
-
-            return MiscEnums.Item.ITEM_POKE_BALL;
+                await Task.Delay(500);
+            }
         }
 
-        private static string GetFriendlyItemsString(IEnumerable<FortSearchResponse.Types.ItemAward> items)
+        private static async Task RecycleItems(Client client)
         {
-            var enumerable = items as IList<FortSearchResponse.Types.ItemAward> ?? items.ToList();
-
-            if (!enumerable.Any())
-                return string.Empty;
-
-            return
-                enumerable.GroupBy(i => i.ItemId)
-                          .Select(kvp => new { ItemName = kvp.Key.ToString(), Amount = kvp.Sum(x => x.ItemCount) })
-                          .Select(y => $"{y.Amount} x {y.ItemName}")
-                          .Aggregate((a, b) => $"{a}, {b}");
-        }
-
-        static async Task RecycleItems(Client client)
-        {
-            var inventory = await client.GetInventory();
+            var inventory = await client.Inventory.GetInventory();
 
             var itemRecycleList = new List<ItemId>
             {
@@ -389,68 +434,14 @@ namespace PokemonGo.RocketAPI.Console
 
             var items = inventory.InventoryDelta.InventoryItems
                 .Select(i => i.InventoryItemData?.Item)
-                .Where(p => p != null && itemRecycleList.Contains(p.Item_));
+                .Where(p => p != null && itemRecycleList.Contains(p.ItemId));
 
             foreach (var item in items.Where(x => x.Count > 0))
             {
-                var transfer = await client.RecycleItem((AllEnum.ItemId)item.Item_, item.Count);
-                System.Console.WriteLine($"Recycled {item.Count}x {(AllEnum.ItemId)item.Item_}");
+                var transfer = await client.Inventory.RecycleItem((ItemId)item.ItemId, item.Count);
+                System.Console.WriteLine($"Recycled {item.Count}x {(ItemId)item.ItemId}");
                 await Task.Delay(500);
             }
         }
-
-        static List<FortData> SortRoute(List<FortData> route)
-        {
-            if (route.Count < 3)
-            {
-                return route;
-            }
-            route = route.OrderBy(x => Distance(x.Latitude, x.Longitude, Settings.DefaultLatitude, Settings.DefaultLongitude)).ToList();
-            foreach (var stop in route)
-            {
-                System.Console.WriteLine("PokeStop Distance: " + Distance(stop.Latitude, stop.Longitude, Settings.DefaultLatitude, Settings.DefaultLongitude));
-            }
-            var newRoute = new List<FortData> { route.First() };
-            route.RemoveAt(0);
-            int i = 0;
-            while (route.Any())
-            {
-                var next = route.OrderBy(x => Distance(x.Latitude, x.Longitude, newRoute.Last().Latitude, newRoute.Last().Longitude)).First();
-                newRoute.Add(next);
-                route.Remove(next);
-                i++;
-                if (i > 50)
-                {
-                    break;
-                }
-            }
-            return newRoute;
-        }
-
-        //private static double Distance(double lat1, double long1, double lat2, double long2)
-        //{
-        //    return Math.Sqrt(Math.Pow(lat1 - lat2, 2) + Math.Pow(long1 - lat2, 2));
-        //}
-
-        private static double Distance(double lat1, double lon1, double lat2, double lon2)
-        {
-            var R = 6371; // Radius of the earth in km
-            var dLat = deg2rad(lat2 - lat1);  // deg2rad below
-            var dLon = deg2rad(lon2 - lon1);
-            var a =
-              Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-              Math.Cos(deg2rad(lat1)) * Math.Cos(deg2rad(lat2)) *
-              Math.Sin(dLon / 2) * Math.Sin(dLon / 2)
-              ;
-            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-            var d = R * c; // Distance in km
-            return d;
-        }
-
-        private static double deg2rad(double deg)
-        {
-            return deg * (Math.PI / 180);
-        }
-
     }
 }

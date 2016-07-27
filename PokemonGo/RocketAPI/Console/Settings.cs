@@ -1,5 +1,5 @@
-﻿using PokemonGo.RocketAPI.Enums;
-using PokemonGo.RocketAPI.GeneratedCode;
+﻿using POGOProtos.Inventory.Item;
+using PokemonGo.RocketAPI.Enums;
 using System.Collections.Generic;
 
 namespace PokemonGo.RocketAPI.Console
@@ -23,12 +23,13 @@ namespace PokemonGo.RocketAPI.Console
 
         public static double DratiniLatitude = 38.54292094612488;
         public static double DratiniLongitude = -121.22782230377197;
-        public static bool DratiniMode = true;
+        public static bool DratiniMode = false;
+        public static bool UsingIV = true;
 
         //San Fran 37.80788523279169,-122.41833686828613
         //Sydney -33.86467850677313,151.21024131774902
 
-        public static ICollection<KeyValuePair<AllEnum.ItemId, int>> ItemRecycleFilter = new List<KeyValuePair<AllEnum.ItemId, int>>();
+        public static ICollection<KeyValuePair<ItemId, int>> ItemRecycleFilter = new List<KeyValuePair<ItemId, int>>();
 
         //Miami long: -80.1917902, lat: 25.7616798
         //public static double DefaultLatitude = 40.764858121285975;

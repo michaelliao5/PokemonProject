@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using PokemonGo.RocketAPI.Exceptions;
 using PokemonGo.RocketAPI.Helpers;
 
 namespace PokemonGo.RocketAPI.Login
@@ -14,16 +12,19 @@ namespace PokemonGo.RocketAPI.Login
     {
         public static async Task<string> GetAccessToken(string username, string password)
         {
-            var handler = new HttpClientHandler()
+            var handler = new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.GZip,
                 AllowAutoRedirect = false
             };
 
-            using (var tempHttpClient = new HttpClient(handler))
+            using (var tempHttpClient = new System.Net.Http.HttpClient(handler))
             {
                 //Get session cookie
                 var sessionResp = await tempHttpClient.GetAsync(Resources.PtcLoginUrl);
+                if (sessionResp.StatusCode == HttpStatusCode.InternalServerError)
+                    throw new PtcOfflineException();
+
                 var data = await sessionResp.Content.ReadAsStringAsync();
                 var lt = JsonHelper.GetValue(data, "lt");
                 var executionId = JsonHelper.GetValue(data, "execution");
@@ -37,10 +38,20 @@ namespace PokemonGo.RocketAPI.Login
                             new KeyValuePair<string, string>("execution", executionId),
                             new KeyValuePair<string, string>("_eventId", "submit"),
                             new KeyValuePair<string, string>("username", username),
-                            new KeyValuePair<string, string>("password", password),
+                            new KeyValuePair<string, string>("password", password)
                         }));
 
+                if (loginResp.Headers.Location == null)
+                {
+                    //This should be sufficient for catching AccountNotVerified exceptions
+                    if (loginResp.StatusCode == HttpStatusCode.OK && !loginResp.Headers.Contains("Set-Cookies"))
+                        throw new AccountNotVerifiedException();
+                    throw new PtcOfflineException();
+                }
+
                 var ticketId = HttpUtility.ParseQueryString(loginResp.Headers.Location.Query)["ticket"];
+                if (ticketId == null)
+                    throw new PtcOfflineException();
 
                 //Get tokenvar 
                 var tokenResp = await tempHttpClient.PostAsync(Resources.PtcLoginOauth,
@@ -53,7 +64,7 @@ namespace PokemonGo.RocketAPI.Login
                             new KeyValuePair<string, string>("client_secret",
                                 "w8ScCUXJQc6kXKw8FiOhd8Fixzht18Dq3PEVkUCP5ZPxtgyWsbTvWHFLm2wNY0JR"),
                             new KeyValuePair<string, string>("grant_type", "refresh_token"),
-                            new KeyValuePair<string, string>("code", ticketId),
+                            new KeyValuePair<string, string>("code", ticketId)
                         }));
 
                 var tokenData = await tokenResp.Content.ReadAsStringAsync();
