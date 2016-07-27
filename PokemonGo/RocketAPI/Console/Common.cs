@@ -35,8 +35,6 @@ namespace PokemonGo.RocketAPI.Console
             PokemonId.Scyther,
             PokemonId.Alakazam,
         };
-
-        public static List<PokemonId> BerryPokemons = new List<PokemonId>
         //To-Do
         //Make catch pokemon call ignore this list
         public static List<PokemonId> PokemonIgnorelist = new List<PokemonId>

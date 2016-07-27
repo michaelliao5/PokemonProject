@@ -46,7 +46,7 @@ namespace PokemonGo.RocketAPI.Console
             else if (greatBallsCount > 0 && pokemonCP >= 1000)
                 return ItemId.ItemGreatBall;
 
-            return ItemId.ItemPokeBall;
+            return pokeBallsCount > 0 ? ItemId.ItemPokeBall : greatBallsCount > 0 ? ItemId.ItemGreatBall : ItemId.ItemUltraBall;
         }
 
         public static string GetFriendlyItemsString(IEnumerable<ItemAward> items)

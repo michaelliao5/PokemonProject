@@ -117,17 +117,16 @@ namespace PokemonGo.RocketAPI.Console
 
         static async void Execute()
         {
-            ReExecute:
-            try
+            if (Settings.DratiniMode)
             {
-                if(Settings.DratiniMode)
-                {
-                    Settings.DefaultLatitude = Settings.DratiniLatitude;
-                    Settings.DefaultLongitude = Settings.DratiniLongitude;
-                    System.Console.WriteLine("Starting Dratini Farm");
-                }
-                var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.PtcUsername, Settings.PtcPassword, Settings.GoogleRefreshToken, Settings.AuthType);
-
+                Settings.DefaultLatitude = Settings.DratiniLatitude;
+                Settings.DefaultLongitude = Settings.DratiniLongitude;
+                System.Console.WriteLine("Starting Dratini Farm");
+            }
+            var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.PtcUsername, Settings.PtcPassword, Settings.GoogleRefreshToken, Settings.AuthType);
+        ReExecute:
+            try
+            {    
                 if (Settings.AuthType == AuthType.Ptc)
                 {
                     await client.Login.DoPtcLogin();
@@ -279,24 +278,28 @@ namespace PokemonGo.RocketAPI.Console
                 var items = inventoryBalls.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData.Item).Where(p => p != null);
                 CatchPokemonResponse caughtPokemonResponse;
                 var pokeBall = await Helper.GetBestBall(encounter.PokemonData.Cp, inventoryBalls);
-                    do
+                do
+                {
+                    if (!berryUsed && Common.BerryPokemons.Contains(pokemonId) && items.Where(p => p.ItemId == ItemId.ItemRazzBerry).Count() > 0 && items.Where(p => p.ItemId == ItemId.ItemRazzBerry).First().Count > 0)
                     {
-                        if (!berryUsed && Common.BerryPokemons.Contains(pokemonId) && items.Where(p => p.ItemId == ItemId.ItemRazzBerry).Count() > 0 && items.Where(p => p.ItemId == ItemId.ItemRazzBerry).First().Count > 0)
-                        {
-                            berryUsed = true;
-                            System.Console.Write($"Use Rasperry (" + items.Where(p => p.ItemId == ItemId.ItemRazzBerry).First().Count + ")!");
-                            await client.Encounter.UseCaptureItem(encounterId, ItemId.ItemRazzBerry, fort.Id);
-                            await Task.Delay(3000);
-                        }
-                        caughtPokemonResponse = await client.Encounter.CatchPokemon(encounterId, fort.Id, pokeBall);
-                    } while (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
+                        berryUsed = true;
+                        System.Console.Write($"Use Rasperry (" + items.Where(p => p.ItemId == ItemId.ItemRazzBerry).First().Count + ")!");
+                        await client.Encounter.UseCaptureItem(encounterId, ItemId.ItemRazzBerry, fort.Id);
+                        await Task.Delay(3000);
+                    }
+                    caughtPokemonResponse = await client.Encounter.CatchPokemon(encounterId, fort.Id, pokeBall);
+                } while (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
 
-                    System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? 
-                        $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemonId} with CP {encounter?.PokemonData?.Cp} IV {Math.Round(PokemonInfo.CalculatePokemonPerfection(encounter?.PokemonData), 2)}"
+                string Iv = Math.Round(PokemonInfo.CalculatePokemonPerfection(encounter?.PokemonData), 2).ToString();
+
+                if (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess)
+                {
+                    await client.Inventory.NicknamePokemon(caughtPokemonResponse.CapturedPokemonId, Iv);
+                }
+
+                System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? 
+                        $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemonId} with CP {encounter?.PokemonData?.Cp} IV {Iv}"
                         : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemonId} got away.. ");
-            
-
-                await client.Encounter.CatchPokemon(encounterId, fort.Id, pokeBall);
             }else
             {
                 System.Console.WriteLine($"Encounter problem: Lure Pokemon {encounter.Result}");
@@ -339,8 +342,15 @@ namespace PokemonGo.RocketAPI.Console
                         caughtPokemonResponse = await client.Encounter.CatchPokemon(pokemon.EncounterId, pokemon.SpawnPointId, pokeBall);
                     } while (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
 
+                    string Iv = Math.Round(PokemonInfo.CalculatePokemonPerfection(encounterPokemonRespone?.WildPokemon?.PokemonData), 2).ToString();
+
+                    if (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess)
+                    {
+                        await client.Inventory.NicknamePokemon(caughtPokemonResponse.CapturedPokemonId, Iv);
+                    }
+
                     System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess 
-                        ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}  IV {Math.Round(PokemonInfo.CalculatePokemonPerfection(encounterPokemonRespone?.WildPokemon?.PokemonData), 2)}" 
+                        ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}  IV {Iv}" 
                         : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away..");
                 }
                 if (Settings.DratiniMode)
