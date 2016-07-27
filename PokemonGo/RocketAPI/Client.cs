@@ -342,8 +342,21 @@ namespace PokemonGo.RocketAPI
                                                    .OrderByDescending(p => p.Cp)
                                                    .ToList();
 
-                var unwantedPokemon = pokemonOfDesiredType.Skip(1) // keep the strongest one for potential battle-evolving
+                var unwantedPokemon = new List<PokemonData>();
+
+                if (unwantedPokemonType == PokemonId.Dratini || unwantedPokemonType == PokemonId.Eevee)
+                {
+                    if(pokemonOfDesiredType.Count > 4)
+                    {
+                        unwantedPokemon = pokemonOfDesiredType.Skip(4) // keep the strongest one for potential battle-evolving
                                                           .ToList();
+                    }
+                }
+                else
+                {
+                    unwantedPokemon = pokemonOfDesiredType.Skip(1) // keep the strongest one for potential battle-evolving
+                                                          .ToList();
+                }
 
                 System.Console.WriteLine($"Grinding {unwantedPokemon.Count} pokemons of type {unwantedPokemonType}");
                 await TransferAllGivenPokemons(client, unwantedPokemon);
