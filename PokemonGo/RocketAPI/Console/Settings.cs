@@ -21,6 +21,10 @@ namespace PokemonGo.RocketAPI.Console
         public static double SidneyLatitude = -33.86467850677313;
         public static double SidneyLongitude = 151.21024131774902;
 
+        public static double DratiniLatitude = 38.54292094612488;
+        public static double DratiniLongitude = -121.22782230377197;
+        public static bool DratiniMode = true;
+
         //San Fran 37.80788523279169,-122.41833686828613
         //Sydney -33.86467850677313,151.21024131774902
 

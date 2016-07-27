@@ -315,7 +315,6 @@ namespace PokemonGo.RocketAPI
                 PokemonId.Flareon,
                 PokemonId.Venusaur,
                 PokemonId.Wigglytuff,
-                PokemonId.Electabuzz,
                 PokemonId.Gyarados,
                 PokemonId.Victreebell,
                 PokemonId.Poliwrath,
