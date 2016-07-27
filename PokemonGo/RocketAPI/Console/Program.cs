@@ -34,8 +34,22 @@ namespace PokemonGo.RocketAPI.Console
                     {
                         if(args[0].Trim().ToLowerInvariant() == "google")
                         {
-                            Settings.AuthType = AuthType.Google;
+                            if (args[1].Trim().ToLowerInvariant() == "dratini")
+                            {
+                                Settings.AuthType = AuthType.Google;
+                                Settings.PtcUsername = args[2];
+                            }
+                            else
+                            {
+                                Settings.AuthType = AuthType.Google;
+                                Settings.PtcUsername = args[1];
+                            }
+
+                        }
+                        else if(args[0].Trim().ToLowerInvariant() == "dratini")
+                        {         
                             Settings.PtcUsername = args[1];
+                            Settings.DratiniMode = true;
                         }
                         else
                         {
@@ -263,7 +277,7 @@ namespace PokemonGo.RocketAPI.Console
         {
             var mapObjects = await client.GetMapObjects();
 
-            var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons);
+            var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons );
 
             if(Settings.DratiniMode)
             {
@@ -280,12 +294,12 @@ namespace PokemonGo.RocketAPI.Console
                 var berryUsed = false;
                 var inventoryBalls = await client.GetInventory();
                 var items = inventoryBalls.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData.Item).Where(p => p != null);
-                if(encounterPokemonRespone.WildPokemon != null)
+                if(encounterPokemonRespone.WildPokemon != null && !(Common.PokemonIgnorelist.Contains(pokemon.PokemonId)))
                 {
                     var pokeBall = await GetBestBall(encounterPokemonRespone?.WildPokemon, inventoryBalls);
                     do
                     {
-                        if (!berryUsed && encounterPokemonRespone.CaptureProbability.CaptureProbability_.First() < 0.4 && Common.berryPokemons.Contains(pokemon.PokemonId) && items.Where(p => p.Item_ == ItemId.ItemRazzBerry).Count() > 0 && items.Where(p => p.Item_ == ItemId.ItemRazzBerry).First().Count > 0)
+                        if (!berryUsed && encounterPokemonRespone.CaptureProbability.CaptureProbability_.First() < 0.4 && Common.BerryPokemons.Contains(pokemon.PokemonId) && items.Where(p => p.Item_ == ItemId.ItemRazzBerry).Count() > 0 && items.Where(p => p.Item_ == ItemId.ItemRazzBerry).First().Count > 0)
                         {
                             berryUsed = true;
                             System.Console.Write($"Use Rasperry (" + items.Where(p => p.Item_ == ItemId.ItemRazzBerry).First().Count + ")!");
