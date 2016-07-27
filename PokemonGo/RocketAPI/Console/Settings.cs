@@ -23,6 +23,10 @@ namespace PokemonGo.RocketAPI.Console
 
         public static double DratiniLatitude = 38.54292094612488;
         public static double DratiniLongitude = -121.22782230377197;
+        //Default Dratini Mode Set to True
+        //To Do
+        //Add this to command args
+        //Add this to Console.Readline
         public static bool DratiniMode = true;
 
         //San Fran 37.80788523279169,-122.41833686828613

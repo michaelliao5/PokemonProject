@@ -332,6 +332,8 @@ namespace PokemonGo.RocketAPI
             var inventory = await client.GetInventory();
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.Pokemon).Where(p => p != null && p?.PokemonId > 0);
 
+
+            //Ex
             foreach (var unwantedPokemonType in pokemonTypes.Where(x => !wantedPokemons.Contains(x)))
             {
                 //var candy = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonFamily).Where(p => p != null && p?.FamilyId == unwantedPokemonType);

@@ -9,7 +9,14 @@ namespace PokemonGo.RocketAPI.Console
 {
     public static class Common
     {
-        public static List<PokemonId> berryPokemons = new List<PokemonId>
+        //To-Do
+        //Make catch pokemon call ignore this list
+        public static List<PokemonId> PokemonIgnorelist = new List<PokemonId>
+        {
+            PokemonId.Pinsir
+        };
+
+        public static List<PokemonId> BerryPokemons = new List<PokemonId>
         {
             PokemonId.Lapras,
                 PokemonId.Snorlax,
