@@ -164,9 +164,9 @@ namespace PokemonGo.RocketAPI.Console
                 {
                     if(Settings.DratiniMode)
                     {
-                        var inventory = await client.Inventory.GetInventory();
-                        var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null);
-                        var pokeUpgrades = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.InventoryUpgrades).Where(p => p != null).SelectMany(x => x.InventoryUpgrades_).Where(x => x.UpgradeType == InventoryUpgradeType.IncreasePokemonStorage).Count();
+                        _inventory = await client.Inventory.GetInventory();
+                        var pokemons = _inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null);
+                        var pokeUpgrades = _inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.InventoryUpgrades).Where(p => p != null).SelectMany(x => x.InventoryUpgrades_).Where(x => x.UpgradeType == InventoryUpgradeType.IncreasePokemonStorage).Count();
                         myMaxPokemon = basePokemonCount + pokeUpgrades * 50;
 
                         System.Console.WriteLine($"PokemonCount:" + pokemons.Count() + " Out of " + myMaxPokemon);
@@ -227,11 +227,11 @@ namespace PokemonGo.RocketAPI.Console
         private static async Task ExecuteFarmingDratinis(Client client)
         {
             var mapObjects = await client.Map.GetMapObjects();
-            
-            foreach (var coord in Common.Coordinates)
+            var coords = Common.Coordinates.Where((x, i) => i % 5 == 0);
+            foreach (var coord in coords)
             {
                 var update = await client.Player.UpdatePlayerLocation(coord.Item1, coord.Item2, 100);
-               
+                
                 await ExecuteCatchAllNearbyPokemons(client);
             }
         }
@@ -409,6 +409,7 @@ namespace PokemonGo.RocketAPI.Console
                 {
                     var families = await Helper.GetPokemonFamilies(inventoryBalls);
                     System.Console.Title = string.Format($"{Settings.PtcUsername} Dratini Candy: {families.First(x => x.FamilyId == PokemonFamilyId.FamilyDratini)?.Candy}");
+                    _inventory = await client.Inventory.GetInventory();
                 }
 
                 //await Task.Delay(5000);
