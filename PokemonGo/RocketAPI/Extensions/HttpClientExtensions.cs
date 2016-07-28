@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using PokemonGo.RocketAPI.Exceptions;
 using POGOProtos.Networking.Envelopes;
+using System;
 
 namespace PokemonGo.RocketAPI.Extensions
 {
@@ -13,19 +14,27 @@ namespace PokemonGo.RocketAPI.Extensions
             string url, RequestEnvelope requestEnvelope) where TRequest : IMessage<TRequest>
             where TResponsePayload : IMessage<TResponsePayload>, new()
         {
-            Debug.WriteLine($"Requesting {typeof(TResponsePayload).Name}");
-            var response = await PostProto<TRequest>(client, url, requestEnvelope);
+            await Task.Delay(300);
+            Request:
+            try
+            {
+                Debug.WriteLine($"Requesting {typeof(TResponsePayload).Name}");
+                var response = await PostProto<TRequest>(client, url, requestEnvelope);
+                if (response.Returns.Count == 0)
+                    throw new InvalidResponseException();
 
-            if (response.Returns.Count == 0)
-                throw new InvalidResponseException();
-
-            //Decode payload
-            //todo: multi-payload support
-            var payload = response.Returns[0];
-            var parsedPayload = new TResponsePayload();
-            parsedPayload.MergeFrom(payload);
-
-            return parsedPayload;
+                //Decode payload
+                //todo: multi-payload support
+                var payload = response.Returns[0];
+                var parsedPayload = new TResponsePayload();
+                parsedPayload.MergeFrom(payload);
+                return parsedPayload;
+            }
+            catch(Exception e)
+            {
+                await Task.Delay(500);
+                goto Request;
+            }
         }
 
         public static async Task<ResponseEnvelope> PostProto<TRequest>(this System.Net.Http.HttpClient client, string url,

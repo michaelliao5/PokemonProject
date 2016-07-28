@@ -39,14 +39,14 @@ namespace PokemonGo.RocketAPI.Console
 
             System.Console.WriteLine($"Pokeballs Left: {pokeBallsCount + greatBallsCount + ultraBallsCount}");
 
-            if (masterBallsCount > 0 && pokemonCP >= 2000)
+            if (masterBallsCount > 5 && pokemonCP >= 2000)
                 return ItemId.ItemMasterBall;
-            else if (ultraBallsCount > 0 && pokemonCP >= 1500)
+            else if (ultraBallsCount > 5 && pokemonCP >= 1500)
                 return ItemId.ItemUltraBall;
-            else if (greatBallsCount > 0 && pokemonCP >= 1000)
+            else if (greatBallsCount > 5 && pokemonCP >= 1000)
                 return ItemId.ItemGreatBall;
-
-            return pokeBallsCount > 0 ? ItemId.ItemPokeBall : greatBallsCount > 0 ? ItemId.ItemGreatBall : ItemId.ItemUltraBall;
+             
+            return pokeBallsCount > 5 ? ItemId.ItemPokeBall : greatBallsCount >5 ? ItemId.ItemGreatBall : ItemId.ItemUltraBall;
         }
 
         public static string GetFriendlyItemsString(IEnumerable<ItemAward> items)
