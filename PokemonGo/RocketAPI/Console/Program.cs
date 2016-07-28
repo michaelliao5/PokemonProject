@@ -126,6 +126,14 @@ namespace PokemonGo.RocketAPI.Console
                 System.Console.WriteLine($"PTC Password:");
                 Settings.PtcPassword = System.Console.ReadLine();
             }
+            else
+            {
+                Settings.AuthType = AuthType.Google;
+                System.Console.WriteLine($"google Username:");
+                Settings.GoogleUsername = System.Console.ReadLine();
+                System.Console.WriteLine($"google Password:");
+                Settings.GooglePassword = System.Console.ReadLine();
+            }
         }
 
         static async void Execute()
@@ -136,16 +144,16 @@ namespace PokemonGo.RocketAPI.Console
                 Settings.DefaultLongitude = Settings.DratiniLongitude;
                 System.Console.WriteLine("Starting Dratini Farm");
             }
-            var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.PtcUsername, Settings.PtcPassword, Settings.GoogleRefreshToken, Settings.AuthType);
+            var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.PtcUsername, Settings.PtcPassword, Settings.GoogleUsername, Settings.GooglePassword, Settings.GoogleRefreshToken, Settings.AuthType);
         ReExecute:
             try
             {    
                 if (Settings.AuthType == AuthType.Ptc)
                 {
-                    await client.Login.DoPtcLogin();
+                    await client.Login.DoPtcLogin(Settings.PtcUsername, Settings.PtcPassword);
                 }
                 else if (Settings.AuthType == AuthType.Google)
-                    await client.Login.DoGoogleLogin();                
+                    await client.Login.DoGoogleLogin(Settings.GoogleUsername, Settings.GooglePassword);                
                 
                 var inventory = await client.Inventory.GetInventory();
                 
@@ -205,6 +213,7 @@ namespace PokemonGo.RocketAPI.Console
                 var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p.PokemonId != null);
                 foreach(var pokemon in pokemons)
                 {
+                    System.Console.WriteLine($"Renaming Pokemon {pokemon.PokemonId}");
                     await client.Inventory.NicknamePokemon(pokemon.Id, pokemon.PokemonId.ToString());
                 }
             }

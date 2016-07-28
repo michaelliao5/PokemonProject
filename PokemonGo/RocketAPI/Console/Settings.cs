@@ -10,6 +10,8 @@ namespace PokemonGo.RocketAPI.Console
         public static AuthType AuthType = Enums.AuthType.Google;
         public static string PtcUsername  = "User";
         public static string PtcPassword = "alligator2";
+        public static string GoogleUsername = "";
+        public static string GooglePassword = "";
         public static string GoogleRefreshToken = string.Empty;
 
         public static double DefaultLatitude = 40.764858121285975;
@@ -25,7 +27,7 @@ namespace PokemonGo.RocketAPI.Console
         public static double DratiniLongitude = -121.22782230377197;
         public static bool DratiniMode = false;
         public static bool UsingIV = true;
-        public static bool RenameMode = true;
+        public static bool RenameMode = false;
 
         //San Fran 37.80788523279169,-122.41833686828613
         //Sydney -33.86467850677313,151.21024131774902

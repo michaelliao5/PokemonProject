@@ -11,11 +11,12 @@ namespace PokemonGo.RocketAPI.Login
     {
         private const string OauthTokenEndpoint = "https://www.googleapis.com/oauth2/v4/token";
         private const string OauthEndpoint = "https://accounts.google.com/o/oauth2/device/code";
-        private const string ClientId = "848232511240-73ri3t7plvk96pj4f85uj8otdat2alem.apps.googleusercontent.com";
+        private const string ClientId = "848232511240-7so421jotr2609rmqakceuu1luuq0ptb.apps.googleusercontent.com";
         private const string ClientSecret = "NCjF1TLi2CcY6t5mt0ZveuL7";
 
         public static async Task<TokenResponseModel> GetAccessToken(DeviceCodeModel deviceCode)
         {
+            int count = 0;
             //Poll until user submitted code..
             Console.WriteLine("Please visit " + deviceCode.verification_url + " and enter " + deviceCode.user_code + " already copied to clipboard");
             Thread thread = new Thread(() => Clipboard.SetText(deviceCode.user_code));
@@ -26,8 +27,8 @@ namespace PokemonGo.RocketAPI.Login
             do
             {
                 await Task.Delay(2000);
-                tokenResponse = await PollSubmittedToken(deviceCode.device_code);
-            } while (tokenResponse.access_token == null || tokenResponse.refresh_token == null);
+                tokenResponse = await PollSubmittedToken(deviceCode.device_code); count++;
+            } while (tokenResponse.access_token == null || tokenResponse.refresh_token == null && count < 100);
 
             return tokenResponse;
         }

@@ -11,25 +11,29 @@ using PokemonGo.RocketAPI.Helpers;
 using PokemonGo.RocketAPI.Login;
 using POGOProtos.Networking.Requests;
 using POGOProtos.Networking.Requests.Messages;
-using System.Diagnostics;
-using static PokemonGo.RocketAPI.Login.GoogleLogin;
-using System.IO;
 
 namespace PokemonGo.RocketAPI.Rpc
 {
     public delegate void GoogleDeviceCodeDelegate(string code, string uri);
     public class Login : BaseRpc
     {
-        public event GoogleDeviceCodeDelegate GoogleDeviceCodeEvent;
+        //public event GoogleDeviceCodeDelegate GoogleDeviceCodeEvent;
 
         public Login(Client client) : base(client)
         {
         }
 
-        public async Task DoGoogleLogin()
+        public async Task DoGoogleLogin(string username,string password)
         {
             _client.AuthType = AuthType.Google;
 
+            _client.AuthToken = GoogleLoginGPSOAuth.DoLogin(username, password);
+            await SetServer();
+
+            /*
+            * This is our old authentication method
+            * Keeping this around in case we might need it later on
+            *
             GoogleLogin.TokenResponseModel tokenResponse = null;
             if (_client.Settings.GoogleRefreshToken != string.Empty)
             {
@@ -38,27 +42,24 @@ namespace PokemonGo.RocketAPI.Rpc
             }
 
             if (_client.AuthToken == null)
-            {                
-                //Process.Start(@"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-                //"google.com/device");
-                DeviceCodeModel deviceCode = new DeviceCodeModel();
-                 while(string.IsNullOrEmpty(deviceCode.device_code))
-                {
-                    deviceCode = await GoogleLogin.GetDeviceCode();
-                }
+            {
+                var deviceCode = await GoogleLogin.GetDeviceCode();
+                if(deviceCode?.user_code == null || deviceCode?.verification_url == null)
+                    throw new GoogleOfflineException();
+
                 GoogleDeviceCodeEvent?.Invoke(deviceCode.user_code, deviceCode.verification_url);
                 tokenResponse = await GoogleLogin.GetAccessToken(deviceCode);
                 _client.Settings.GoogleRefreshToken = tokenResponse?.refresh_token;
-                File.WriteAllText("C:\\Users\\Michael\\Desktop\\test.txt", tokenResponse?.refresh_token);
                 _client.AuthToken = tokenResponse?.id_token;
             }
 
             await SetServer();
+            */
         }
 
-        public async Task DoPtcLogin()
+        public async Task DoPtcLogin(string username, string password)
         {
-            _client.AuthToken = await PtcLogin.GetAccessToken(_client.Settings.PtcUsername, _client.Settings.PtcPassword);
+            _client.AuthToken = await PtcLogin.GetAccessToken(username, password);
             _client.AuthType = AuthType.Ptc;
 
             await SetServer();
@@ -109,7 +110,10 @@ namespace PokemonGo.RocketAPI.Rpc
             var serverResponse = await PostProto<Request>(Resources.RpcUrl, serverRequest);
 
             if (serverResponse.AuthTicket == null)
+            {
+                _client.AuthToken = null;
                 throw new AccessTokenExpiredException();
+            }
 
             _client.AuthTicket = serverResponse.AuthTicket;
             _client.ApiUrl = serverResponse.ApiUrl;
