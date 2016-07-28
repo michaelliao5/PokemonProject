@@ -37,10 +37,23 @@ namespace PokemonGo.RocketAPI.Console
                     Settings.PtcPassword = "Poke1234";
                     if (args.Count() > 1)
                     {
-                        if(args[0].Trim().ToLowerInvariant() == "google")
+                        if (args[0].Trim().ToLowerInvariant() == "google")
                         {
-                            Settings.AuthType = AuthType.Google;
+                            if (args[1].Trim().ToLowerInvariant() == "dratini")
+                            {
+                                Settings.AuthType = AuthType.Google;
+                                Settings.PtcUsername = args[2];
+                            }
+                            else
+                            {
+                                Settings.AuthType = AuthType.Google;
+                                Settings.PtcUsername = args[1];
+                            }
+                        }
+                        else if (args[0].Trim().ToLowerInvariant() == "dratini")
+                        {
                             Settings.PtcUsername = args[1];
+                            Settings.DratiniMode = true;
                         }
                         else
                         {
@@ -154,6 +167,10 @@ namespace PokemonGo.RocketAPI.Console
 
                         await ExecuteFarmingDratinis(client);
                     }
+                    else if(Settings.RenameMode)
+                    {
+                        await RenameAllPokemons(client);
+                    }
                     else
                     {
                         await ExecuteFarmingPokestopsAndPokemons(client);
@@ -177,6 +194,19 @@ namespace PokemonGo.RocketAPI.Console
                 System.Console.WriteLine($"Exception occurred, Restarting..");
                 await Task.Delay(10000);
                 goto ReExecute;
+            }
+        }
+
+        private static async Task RenameAllPokemons(Client client)
+        {
+            var inventory = await client.Inventory.GetInventory();
+            if (inventory != null && inventory.InventoryDelta != null)
+            {
+                var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p.PokemonId != null);
+                foreach(var pokemon in pokemons)
+                {
+                    await client.Inventory.NicknamePokemon(pokemon.Id, pokemon.PokemonId.ToString());
+                }
             }
         }
 
@@ -439,7 +469,9 @@ namespace PokemonGo.RocketAPI.Console
                 ItemId.ItemPotion,
                 ItemId.ItemRevive,
                 ItemId.ItemMaxPotion,
+                ItemId.ItemMaxRevive,
                 ItemId.ItemHyperPotion,
+                ItemId.ItemRazzBerry
             };
 
             var items = inventory.InventoryDelta.InventoryItems

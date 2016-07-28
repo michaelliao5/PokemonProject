@@ -12,6 +12,8 @@ using PokemonGo.RocketAPI.Login;
 using POGOProtos.Networking.Requests;
 using POGOProtos.Networking.Requests.Messages;
 using System.Diagnostics;
+using static PokemonGo.RocketAPI.Login.GoogleLogin;
+using System.IO;
 
 namespace PokemonGo.RocketAPI.Rpc
 {
@@ -36,13 +38,18 @@ namespace PokemonGo.RocketAPI.Rpc
             }
 
             if (_client.AuthToken == null)
-            {
-                Process.Start(@"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-                 "google.com/device");
-                var deviceCode = await GoogleLogin.GetDeviceCode();
+            {                
+                //Process.Start(@"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                //"google.com/device");
+                DeviceCodeModel deviceCode = new DeviceCodeModel();
+                 while(string.IsNullOrEmpty(deviceCode.device_code))
+                {
+                    deviceCode = await GoogleLogin.GetDeviceCode();
+                }
                 GoogleDeviceCodeEvent?.Invoke(deviceCode.user_code, deviceCode.verification_url);
                 tokenResponse = await GoogleLogin.GetAccessToken(deviceCode);
                 _client.Settings.GoogleRefreshToken = tokenResponse?.refresh_token;
+                File.WriteAllText("C:\\Users\\Michael\\Desktop\\test.txt", tokenResponse?.refresh_token);
                 _client.AuthToken = tokenResponse?.id_token;
             }
 

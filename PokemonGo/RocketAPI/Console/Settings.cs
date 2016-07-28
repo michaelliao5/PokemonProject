@@ -25,6 +25,7 @@ namespace PokemonGo.RocketAPI.Console
         public static double DratiniLongitude = -121.22782230377197;
         public static bool DratiniMode = false;
         public static bool UsingIV = true;
+        public static bool RenameMode = true;
 
         //San Fran 37.80788523279169,-122.41833686828613
         //Sydney -33.86467850677313,151.21024131774902
