@@ -227,7 +227,7 @@ namespace PokemonGo.RocketAPI.Console
         private static async Task ExecuteFarmingDratinis(Client client)
         {
             var mapObjects = await client.Map.GetMapObjects();
-            var coords = Common.Coordinates.Where((x, i) => i % 5 == 0);
+            var coords = Common.Coordinates.Where((x, i) => i % 2 == 0);
             foreach (var coord in coords)
             {
                 var update = await client.Player.UpdatePlayerLocation(coord.Item1, coord.Item2, 100);
