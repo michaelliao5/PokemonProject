@@ -17,6 +17,7 @@ using POGOProtos.Map.Pokemon;
 using POGOProtos.Enums;
 using POGOProtos.Inventory.Item;
 using POGOProtos.Data;
+using System.Diagnostics;
 
 namespace PokemonGo.RocketAPI.Console
 {
@@ -26,6 +27,7 @@ namespace PokemonGo.RocketAPI.Console
         static int basePokemonCount = 250;        
         static string password = "Poke1234";
         static GetInventoryResponse _inventory;
+        static Stopwatch _timer = new Stopwatch();
 
         static void Main(string[] args)
         {
@@ -152,7 +154,8 @@ namespace PokemonGo.RocketAPI.Console
             var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.PtcUsername, Settings.PtcPassword, Settings.GoogleUsername, Settings.GooglePassword, Settings.GoogleRefreshToken, Settings.AuthType);
         ReExecute:
             try
-            {    
+            {
+                _timer.Start();
                 if (Settings.AuthType == AuthType.Ptc)
                 {
                     await client.Login.DoPtcLogin(Settings.PtcUsername, Settings.PtcPassword);
@@ -198,7 +201,14 @@ namespace PokemonGo.RocketAPI.Console
                     else
                     {
                         await Task.Delay(15000);
-                    }                    
+                    }                
+                    //If timer hits 30 mins reset
+                    if(_timer.ElapsedMilliseconds > 1800000)
+                    {
+                        System.Console.WriteLine("Resetting to refresh timeout");
+                        await Task.Delay(5000);
+                        goto ReExecute;
+                    }   
                 }
             }
             catch (Exception e)
@@ -243,7 +253,6 @@ namespace PokemonGo.RocketAPI.Console
             pokeStops = Helper.SortRoute(pokeStops.ToList());
 
             int waitCount = 0;
-            Timer timer = new Timer();
 
             foreach (var pokeStop in pokeStops)
             {
@@ -337,11 +346,11 @@ namespace PokemonGo.RocketAPI.Console
 
                 string Iv = Math.Round(PokemonInfo.CalculatePokemonPerfection(encounter?.PokemonData), 2).ToString();
 
-                if (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess)
+                if (Settings.UsingIV && caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess)
                 {
                     await Task.Delay(500);
                     await client.Inventory.NicknamePokemon(caughtPokemonResponse.CapturedPokemonId, Iv);
-                    
+
                 }
 
                 System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? 
@@ -393,7 +402,7 @@ namespace PokemonGo.RocketAPI.Console
 
                     string Iv = Math.Round(PokemonInfo.CalculatePokemonPerfection(encounterPokemonRespone?.WildPokemon?.PokemonData), 2).ToString();
 
-                    if (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess)
+                    if (Settings.UsingIV && caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess)
                     {
                         await Task.Delay(500);
                         await client.Inventory.NicknamePokemon(caughtPokemonResponse.CapturedPokemonId, Iv);

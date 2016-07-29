@@ -5,11 +5,13 @@ using Google.Protobuf;
 using PokemonGo.RocketAPI.Exceptions;
 using POGOProtos.Networking.Envelopes;
 using System;
+using System.Timers;
 
 namespace PokemonGo.RocketAPI.Extensions
 {
     public static class HttpClientExtensions
     {
+        static Timer _timer = new Timer();
         public static async Task<TResponsePayload> PostProtoPayload<TRequest, TResponsePayload>(this System.Net.Http.HttpClient client,
             string url, RequestEnvelope requestEnvelope) where TRequest : IMessage<TRequest>
             where TResponsePayload : IMessage<TResponsePayload>, new()
