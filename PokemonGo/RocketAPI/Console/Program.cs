@@ -207,6 +207,7 @@ namespace PokemonGo.RocketAPI.Console
                     {
                         System.Console.WriteLine("Resetting to refresh timeout");
                         await Task.Delay(5000);
+                        _timer.Reset();
                         goto ReExecute;
                     }   
                 }
