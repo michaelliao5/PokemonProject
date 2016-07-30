@@ -636,15 +636,18 @@ namespace PokemonGo.RocketAPI.Console
             foreach (var monType in powerUpMons)
             {
                 var mon = monType.First();
-                UpgradePokemonResponse response;
-
-                do
+                if(mon.Cp > 1000)
                 {
-                    response = await client.Inventory.UpgradePokemon(mon.Id);
-                    System.Console.WriteLine($"Powered {mon.PokemonId} CP {mon.Cp}");
-                } while (response.Result != UpgradePokemonResponse.Types.Result.ErrorInsufficientResources && response.Result != UpgradePokemonResponse.Types.Result.ErrorUpgradeNotAvailable);
+                    UpgradePokemonResponse response;
 
-                System.Console.WriteLine($"Successfully Powered {mon.PokemonId} CP {mon.Cp}");
+                    do
+                    {
+                        response = await client.Inventory.UpgradePokemon(mon.Id);
+                        System.Console.WriteLine($"Powered {mon.PokemonId} CP {mon.Cp}");
+                    } while (response.Result != UpgradePokemonResponse.Types.Result.ErrorInsufficientResources && response.Result != UpgradePokemonResponse.Types.Result.ErrorUpgradeNotAvailable);
+
+                    System.Console.WriteLine($"Successfully Powered {mon.PokemonId} CP {mon.Cp}");
+                }
             }
             
 

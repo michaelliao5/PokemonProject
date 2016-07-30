@@ -22,6 +22,7 @@ namespace PokemonGo.RocketAPI.Console
         {
             PokemonId.Lapras,
             PokemonId.Snorlax,
+            PokemonId.Blastoise,
             PokemonId.Magmar,
             PokemonId.Dragonite,
             PokemonId.Exeggutor,
@@ -36,8 +37,7 @@ namespace PokemonGo.RocketAPI.Console
             PokemonId.Electabuzz,
             PokemonId.Machamp,
             PokemonId.Slowbro,
-            PokemonId.Ninetales,
-            PokemonId.Blastoise,
+            PokemonId.Ninetales,            
             PokemonId.Charizard,
         };
 
@@ -128,12 +128,12 @@ namespace PokemonGo.RocketAPI.Console
         };
         public static List<ItemId> itemFarmingList = new List<ItemId>
         {
-            ItemId.ItemSuperPotion,
-            ItemId.ItemPotion,
-            ItemId.ItemRevive,
-            ItemId.ItemMaxPotion,
-            ItemId.ItemMaxRevive,
-            ItemId.ItemHyperPotion,
+            //ItemId.ItemSuperPotion,
+            //ItemId.ItemPotion,
+            //ItemId.ItemRevive,
+            //ItemId.ItemMaxPotion,
+            //ItemId.ItemMaxRevive,
+            //ItemId.ItemHyperPotion,
         };
         public static List<ItemId> itemRecycleList = new List<ItemId>
         {
