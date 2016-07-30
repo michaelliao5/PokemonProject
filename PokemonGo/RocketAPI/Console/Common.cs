@@ -9,6 +9,14 @@ namespace PokemonGo.RocketAPI.Console
 {
     public static class Common
     {
+        public static IList<Location> DratiniSpawn = new List<Location>
+        {
+            new Location(48.851438, 2.357557),
+            new Location(33.762338, -118.196181),
+            new Location(37.808966, -122.410153),
+            new Location(37.7981849, -122.4025602),
+            new Location(33.74168493949062, -118.10637474060057),
+        };
         public static List<PokemonId> PublishingPowerUpPokemons = new List<PokemonId>
         {
             PokemonId.Lapras,

@@ -283,7 +283,7 @@ namespace PokemonGo.RocketAPI.Console
             pokeStops = Helper.SortRoute(pokeStops.ToList());
 
             int waitCount = 0;
-
+            int scanCount = 0;
             foreach (var pokeStop in pokeStops)
             {
                 var update = await client.Player.UpdatePlayerLocation(pokeStop.Latitude, pokeStop.Longitude, 100);
@@ -338,6 +338,13 @@ namespace PokemonGo.RocketAPI.Console
                             System.Console.WriteLine("Waiting for 30 secs for soft ban");
                             await Task.Delay(30000);
                             waitCount = 0;
+                        }
+
+                        scanCount++;
+                        if(scanCount == 5)
+                        {
+                            scanCount = 0;
+                            await SnipeHelper.Scan(client, _inventory);
                         }
                     }
                 }
