@@ -165,6 +165,10 @@ namespace PokemonGo.RocketAPI.Console
             {
                 System.Console.WriteLine("Using IV Mode");
             }
+            if(Settings.ItemMode)
+            {
+                System.Console.WriteLine("Using Item Farming Mode");
+            }
             var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.PtcUsername, Settings.PtcPassword, Settings.GoogleUsername, Settings.GooglePassword, Settings.GoogleRefreshToken, Settings.AuthType);
         ReExecute:
             try
@@ -322,12 +326,16 @@ namespace PokemonGo.RocketAPI.Console
                             await TransferAllButStrongestUnwantedPokemon(client);
                         }
 
-                        if(pokeStop.LureInfo != null)
+                        if(!Settings.ItemMode)
                         {
-                            await ExecuteCatchLurePokemonsTask(client, pokeStop);
+                            if (pokeStop.LureInfo != null)
+                            {
+                                await ExecuteCatchLurePokemonsTask(client, pokeStop);
+                            }
+
+                            await ExecuteCatchAllNearbyPokemons(client);
+
                         }
-                        
-                        await ExecuteCatchAllNearbyPokemons(client);
 
                         if (fortSearch.ExperienceAwarded == 0)
                         {
@@ -565,17 +573,7 @@ namespace PokemonGo.RocketAPI.Console
         private static async Task RecycleItems(Client client)
         {
             var inventory = await client.Inventory.GetInventory();
-
-            var itemRecycleList = new List<ItemId>
-            {
-                ItemId.ItemSuperPotion,
-                ItemId.ItemPotion,
-                ItemId.ItemRevive,
-                ItemId.ItemMaxPotion,
-                ItemId.ItemMaxRevive,
-                ItemId.ItemHyperPotion,
-                ItemId.ItemRazzBerry
-            };
+            var itemRecycleList = Settings.RecycleMode ? Enum.GetValues(typeof(ItemId)).Cast<ItemId>().Where(x => !Common.itemFarmingList.Contains(x)) : Common.itemRecycleList;
 
             var items = inventory.InventoryDelta.InventoryItems
                 .Select(i => i.InventoryItemData?.Item)

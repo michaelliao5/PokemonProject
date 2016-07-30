@@ -1,4 +1,5 @@
 ﻿using POGOProtos.Enums;
+using POGOProtos.Inventory.Item;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -125,8 +126,25 @@ namespace PokemonGo.RocketAPI.Console
             PokemonId.Scyther,
             PokemonId.Alakazam,
         };
-        //To-Do
-        //Make catch pokemon call ignore this list
+        public static List<ItemId> itemFarmingList = new List<ItemId>
+        {
+            ItemId.ItemSuperPotion,
+            ItemId.ItemPotion,
+            ItemId.ItemRevive,
+            ItemId.ItemMaxPotion,
+            ItemId.ItemMaxRevive,
+            ItemId.ItemHyperPotion,
+        };
+        public static List<ItemId> itemRecycleList = new List<ItemId>
+        {
+            ItemId.ItemSuperPotion,
+            ItemId.ItemPotion,
+            ItemId.ItemRevive,
+            ItemId.ItemMaxPotion,
+            ItemId.ItemMaxRevive,
+            ItemId.ItemHyperPotion,
+            ItemId.ItemRazzBerry
+        };
         public static List<PokemonId> PokemonIgnorelist = new List<PokemonId>
         {
             PokemonId.Pinsir
