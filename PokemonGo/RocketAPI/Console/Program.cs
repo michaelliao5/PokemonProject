@@ -54,6 +54,11 @@ namespace PokemonGo.RocketAPI.Console
                                 Settings.PtcUsername = args[1];
                             }
                         }
+                        else if (args[0].Trim().ToLowerInvariant() == "recycle")
+                        {
+                            Settings.PtcUsername = args[1];
+                            Settings.RecycleMode = true;
+                        }
                         else if (args[0].Trim().ToLowerInvariant() == "dratini")
                         {
                             Settings.PtcUsername = args[1];
@@ -119,6 +124,14 @@ namespace PokemonGo.RocketAPI.Console
                 }                
             }
 
+            System.Console.WriteLine($"Input Publishing Level, Enter if you want 32");
+            var lvl = System.Console.ReadLine();
+            if(!string.IsNullOrWhiteSpace(lvl))
+            {
+                Settings.PublishLevel = int.Parse(lvl);
+            }
+
+
             System.Console.WriteLine($"Using PTC? (y/n)?");
             var ptc = System.Console.ReadLine();
 
@@ -166,10 +179,19 @@ namespace PokemonGo.RocketAPI.Console
                 
                 while (true)
                 {
-                    if(publishEnabled)
+                    if(Settings.RecycleMode)
+                    {
+                        System.Console.WriteLine($"Starting Recycle Mode");
+                        await CleanInventory(client);
+                        await Task.Delay(5000);
+                        System.Console.WriteLine($"Recycle Complete");
+                        System.Console.ReadLine();
+                    }
+                    else if (publishEnabled)
                     {
                         await PublishingAccount(client);
                         await Task.Delay(15000);
+                        System.Console.WriteLine($"ACCOUNT READY");
                         System.Console.ReadLine();
                     }
                     else if(Settings.DratiniMode)
@@ -428,7 +450,7 @@ namespace PokemonGo.RocketAPI.Console
                 if (Settings.DratiniMode)
                 {
                     var families = await Helper.GetPokemonFamilies(inventoryBalls);
-                    System.Console.Title = string.Format($"{Settings.PtcUsername} Dratini Candy: {families.First(x => x.FamilyId == PokemonFamilyId.FamilyDratini)?.Candy}");
+                    System.Console.Title = string.Format($"{Settings.PtcUsername} Dratini Candy: {families.First(x => x.Item1 == PokemonFamilyId.FamilyDratini)?.Item2}");
                     _inventory = await client.Inventory.GetInventory();
                 }
 
@@ -501,7 +523,38 @@ namespace PokemonGo.RocketAPI.Console
                 
             }
         }
+        
+        private static async Task CleanInventory(Client client)
+        {
+            var inventory = await client.Inventory.GetInventory();
 
+            var itemRecycleList = new List<Tuple<ItemId, int>>
+            {
+                Tuple.Create(ItemId.ItemSuperPotion, 5),
+                Tuple.Create(ItemId.ItemPotion, 5),
+                Tuple.Create(ItemId.ItemRevive, 5),
+                Tuple.Create(ItemId.ItemMaxPotion, 5),
+                Tuple.Create(ItemId.ItemMaxRevive, 5),
+                Tuple.Create(ItemId.ItemHyperPotion, 5),
+                Tuple.Create(ItemId.ItemRazzBerry, 5),
+                Tuple.Create(ItemId.ItemPokeBall, 50),
+                Tuple.Create(ItemId.ItemGreatBall, 80),
+            };
+
+            var items = inventory.InventoryDelta.InventoryItems
+                .Select(i => i.InventoryItemData?.Item).Where(p => p != null).ToArray();
+
+            foreach (var itemType in itemRecycleList)
+            {
+                var curItems = items.Where(x => x.ItemId == itemType.Item1 && x.Count > itemType.Item2).ToArray();
+                foreach (var item in curItems)
+                {
+                    var transfer = await client.Inventory.RecycleItem((ItemId)item.ItemId, item.Count - itemType.Item2);
+                    System.Console.WriteLine($"Recycled {item.Count}x {(ItemId)item.ItemId}");
+
+                }
+            }            
+        }
         private static async Task RecycleItems(Client client)
         {
             var inventory = await client.Inventory.GetInventory();
@@ -569,12 +622,12 @@ namespace PokemonGo.RocketAPI.Console
             await Task.Delay(5000);
             inventory = await client.Inventory.GetInventory();
             pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
+
             var powerUpMons = pokemons.Where(x => Common.PublishingPowerUpPokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
 
-            /*
+            
             System.Console.WriteLine("Starting Powering");
-
-            //POWERING NOT WORKING
+            
             foreach (var monType in powerUpMons)
             {
                 var mon = monType.First();
@@ -584,11 +637,11 @@ namespace PokemonGo.RocketAPI.Console
                 {
                     response = await client.Inventory.UpgradePokemon(mon.Id);
                     System.Console.WriteLine($"Powered {mon.PokemonId} CP {mon.Cp}");
-                } while (response.Result != UpgradePokemonResponse.Types.Result.Success);
+                } while (response.Result != UpgradePokemonResponse.Types.Result.ErrorInsufficientResources && response.Result != UpgradePokemonResponse.Types.Result.ErrorUpgradeNotAvailable);
 
                 System.Console.WriteLine($"Successfully Powered {mon.PokemonId} CP {mon.Cp}");
             }
-            */
+            
 
             System.Console.WriteLine("[!] finished Publishing");
             await Task.Delay(5000);

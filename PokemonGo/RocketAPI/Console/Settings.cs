@@ -29,6 +29,7 @@ namespace PokemonGo.RocketAPI.Console
         public static bool DratiniMode = false;
         public static bool UsingIV = false;
         public static bool RenameMode = false;
+        public static bool RecycleMode = true;
 
         //San Fran 37.80788523279169,-122.41833686828613
         //Sydney -33.86467850677313,151.21024131774902

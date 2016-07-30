@@ -14,17 +14,17 @@ namespace PokemonGo.RocketAPI.Console
 {
     public static class Helper
     {
-        public static async Task<List<PokemonFamily>> GetPokemonFamilies(GetInventoryResponse inventory)
+        public static async Task<List<Tuple<PokemonFamilyId, int>>> GetPokemonFamilies(GetInventoryResponse inventory)
         {
             var families = from item in inventory.InventoryDelta.InventoryItems
-                           where item.InventoryItemData?.PokemonFamily != null
-                           where item.InventoryItemData?.PokemonFamily.FamilyId != PokemonFamilyId.FamilyUnset
-                           group item by item.InventoryItemData?.PokemonFamily.FamilyId into family
-                           select new PokemonFamily
-                           {
-                               FamilyId = family.First().InventoryItemData.PokemonFamily.FamilyId,
-                               Candy = family.First().InventoryItemData.PokemonFamily.Candy
-                           };
+                           where item.InventoryItemData?.Candy != null
+                           where item.InventoryItemData?.Candy.FamilyId != PokemonFamilyId.FamilyUnset
+                           group item by item.InventoryItemData?.Candy.FamilyId into family
+                           select new Tuple<PokemonFamilyId, int>
+                           (
+                               family.First().InventoryItemData.Candy.FamilyId,
+                               family.First().InventoryItemData.Candy.Candy_
+                           );
 
 
             return families.ToList();

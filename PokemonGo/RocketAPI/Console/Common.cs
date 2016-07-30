@@ -28,7 +28,8 @@ namespace PokemonGo.RocketAPI.Console
             PokemonId.Machamp,
             PokemonId.Slowbro,
             PokemonId.Ninetales,
-            PokemonId.Wartortle,
+            PokemonId.Blastoise,
+            PokemonId.Charizard,
         };
 
         public static List<PokemonId> EvolveLevelOnePokemons = new List<PokemonId>
