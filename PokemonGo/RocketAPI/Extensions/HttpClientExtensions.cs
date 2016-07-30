@@ -16,6 +16,7 @@ namespace PokemonGo.RocketAPI.Extensions
             string url, RequestEnvelope requestEnvelope) where TRequest : IMessage<TRequest>
             where TResponsePayload : IMessage<TResponsePayload>, new()
         {
+            int delay = 300;
             await Task.Delay(300);
             Request:
             try
@@ -30,11 +31,13 @@ namespace PokemonGo.RocketAPI.Extensions
                 var payload = response.Returns[0];
                 var parsedPayload = new TResponsePayload();
                 parsedPayload.MergeFrom(payload);
+                delay = 300;
                 return parsedPayload;
             }
             catch(Exception e)
             {
-                await Task.Delay(500);
+                await Task.Delay(delay);
+                delay += 200;
                 goto Request;
             }
         }
