@@ -42,15 +42,11 @@ namespace PokemonGo.RocketAPI
         internal string ApiUrl { get; set; }
         internal AuthTicket AuthTicket { get; set; }
 
-        public Client(double lat, double lng, string ptcUsername, string ptcPassword, string googleUser, string googlePass, string googleRefreshToken, AuthType authType)
+        public Client(double lat, double lng, string googleRefreshToken, AuthType authType)
         {
             Settings = new Settings();
             Settings.DefaultLatitude = lat;
             Settings.DefaultLongitude = lng;
-            Settings.PtcPassword = ptcPassword;
-            Settings.PtcUsername = ptcUsername;
-            Settings.GooglePassword = googlePass;
-            Settings.GoogleUsername = googleUser;
             Settings.GoogleRefreshToken = googleRefreshToken;
             Settings.AuthType = authType;
             Settings.DefaultAltitude = 100;

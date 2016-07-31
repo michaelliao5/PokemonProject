@@ -4,6 +4,14 @@ using System.Collections.Generic;
 
 namespace PokemonGo.RocketAPI.Console
 {
+    public enum SettingMode
+    {
+        Undefined = 0,
+        RenameMode = 1,
+        RecycleMode = 2,
+        ItemMode = 3,
+        ShowStatsMode = 4,
+    }
     public static class Settings
     {
         //Fetch these settings from intercepting the /auth call in headers and body (only needed for google auth)
@@ -22,25 +30,14 @@ namespace PokemonGo.RocketAPI.Console
         public static double SanFranLongitude = -118.496104;
         public static double SidneyLatitude = -33.86467850677313;
         public static double SidneyLongitude = 151.21024131774902;
-
-        public static double DratiniLatitude = 38.54292094612488;
-        public static double DratiniLongitude = -121.22782230377197;
+        
         public static int PublishLevel = 32;
         public static int StartSniping = 28;
-        public static bool DratiniMode = false;
         public static bool UsingIV = false;
-        public static bool RenameMode = false;
-        public static bool RecycleMode = false;
-        public static bool ItemMode = false;
-        public static bool ShowStatsMode = false;
+        public static SettingMode Mode = SettingMode.Undefined;
 
         //San Fran 37.80788523279169,-122.41833686828613
         //Sydney -33.86467850677313,151.21024131774902
-
-        public static ICollection<KeyValuePair<ItemId, int>> ItemRecycleFilter = new List<KeyValuePair<ItemId, int>>();
-
         //Miami long: -80.1917902, lat: 25.7616798
-        //public static double DefaultLatitude = 40.764858121285975;
-        //public static double DefaultLongitude = -73.97272288799286;
     }
 }

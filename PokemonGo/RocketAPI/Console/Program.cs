@@ -25,7 +25,6 @@ namespace PokemonGo.RocketAPI.Console
     {
         static int myMaxPokemon = 250;
         static int basePokemonCount = 250;        
-        static string password = "Poke1234";
         static bool publishEnabled = false;
         static bool snipingEnabled = false;
         static GetInventoryResponse _inventory;
@@ -44,31 +43,19 @@ namespace PokemonGo.RocketAPI.Console
                     {
                         if (args[0].Trim().ToLowerInvariant() == "google")
                         {
-                            if (args[1].Trim().ToLowerInvariant() == "dratini")
-                            {
-                                Settings.AuthType = AuthType.Google;
-                                Settings.PtcUsername = args[2];
-                            }
-                            else
-                            {
-                                Settings.AuthType = AuthType.Google;
-                                Settings.PtcUsername = args[1];
-                            }
+                            Settings.AuthType = AuthType.Google;
+                            Settings.PtcUsername = args[1];
                         }
                         else if (args[0].Trim().ToLowerInvariant() == "recycle")
                         {
                             Settings.PtcUsername = args[1];
-                            Settings.RecycleMode = true;
-                        }
-                        else if (args[0].Trim().ToLowerInvariant() == "dratini")
-                        {
-                            Settings.PtcUsername = args[1];
-                            Settings.DratiniMode = true;
+                            Settings.Mode = SettingMode.RecycleMode;
                         }
                         else
                         {
                             Settings.PtcPassword = args[1];
                         }
+
                         if(args.Count() == 4)
                         {
                             Settings.DefaultLongitude = long.Parse(args[3]);
@@ -163,21 +150,12 @@ namespace PokemonGo.RocketAPI.Console
 
         static async void Execute()
         {
-            if (Settings.DratiniMode)
-            {
-                Settings.DefaultLatitude = Settings.DratiniLatitude;
-                Settings.DefaultLongitude = Settings.DratiniLongitude;
-                System.Console.WriteLine("Starting Dratini Farm");
-            }
             if(Settings.UsingIV)
-            {
                 System.Console.WriteLine("Using IV Mode");
-            }
-            if(Settings.ItemMode)
-            {
+            if(Settings.Mode == SettingMode.ItemMode)
                 System.Console.WriteLine("Using Item Farming Mode");
-            }
-            var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.PtcUsername, Settings.PtcPassword, Settings.GoogleUsername, Settings.GooglePassword, Settings.GoogleRefreshToken, Settings.AuthType);
+
+            var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.GoogleRefreshToken, Settings.AuthType);
         ReExecute:
             try
             {
@@ -191,73 +169,58 @@ namespace PokemonGo.RocketAPI.Console
                 
                 while (true)
                 {
-                    if(Settings.ShowStatsMode)
+                    switch(Settings.Mode)
                     {
-                        System.Console.WriteLine($"Showing Status");
-                        await ShowPokemonStats(client);
-                        await Task.Delay(5000);
-                        System.Console.ReadLine();
-                    }
-                    else if(Settings.RecycleMode)
-                    {
-                        System.Console.WriteLine($"Starting Recycle Mode");
-                        await CleanInventory(client);
-                        await Task.Delay(5000);
-                        System.Console.WriteLine($"Recycle Complete");
-                        System.Console.ReadLine();
-                    }
-                    else if (publishEnabled)
-                    {
-                        await PublishingAccount(client);
-                        await Task.Delay(15000);
-                        System.Console.WriteLine($"ACCOUNT READY");
-                        System.Console.ReadLine();
-                    }
-                    else if(Settings.DratiniMode)
-                    {
-                        _inventory = await client.Inventory.GetInventory();
-                        var pokemons = _inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null);
-                        var pokeUpgrades = _inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.InventoryUpgrades).Where(p => p != null).SelectMany(x => x.InventoryUpgrades_).Where(x => x.UpgradeType == InventoryUpgradeType.IncreasePokemonStorage).Count();
-                        myMaxPokemon = basePokemonCount + pokeUpgrades * 50;
+                        case SettingMode.ShowStatsMode:
+                            System.Console.WriteLine($"Showing Status");
+                            await ShowPokemonStats(client);
+                            await Task.Delay(5000);
+                            System.Console.ReadLine();
+                            break;
 
-                        System.Console.WriteLine($"PokemonCount:" + pokemons.Count() + " Out of " + myMaxPokemon);
+                        case SettingMode.RecycleMode:
+                            System.Console.WriteLine($"Starting Recycle Mode");
+                            await CleanInventory(client);
+                            await Task.Delay(5000);
+                            System.Console.WriteLine($"Recycle Complete");
+                            System.Console.ReadLine();
+                            break;
 
+                        case SettingMode.RenameMode:
+                            System.Console.WriteLine($"Starting Renaming Pokemons");
+                            await RenameAllPokemons(client);
+                            await Task.Delay(5000);
+                            System.Console.WriteLine($"Rename Complete");
+                            System.Console.ReadLine();
+                            break;
 
-                        if (pokemons.Count() >= myMaxPokemon - 20)
-                        {
-                            await TransferAllButStrongestUnwantedPokemon(client);
-                        }
+                        default:
+                            if (publishEnabled)
+                            {
+                                await PublishingAccount(client);
+                                await Task.Delay(15000);
+                                System.Console.WriteLine($"ACCOUNT READY");
+                                System.Console.ReadLine();
+                            }
+                            else
+                            {
+                                await ExecuteFarmingPokestopsAndPokemons(client);
+                            }
+                            System.Console.WriteLine("Resetting Player Position");
+                            var update = await client.Player.UpdatePlayerLocation(Settings.DefaultLatitude, Settings.DefaultLongitude, 100);
+                            await RecycleItems(client);
 
-                        await ExecuteFarmingDratinis(client);
-                    }
-                    else if(Settings.RenameMode)
-                    {
-                        await RenameAllPokemons(client);
-                    }
-                    else
-                    {
-                        await ExecuteFarmingPokestopsAndPokemons(client);
-                    }
-                    
-                    System.Console.WriteLine("Resetting Player Position");
-                    var update = await client.Player.UpdatePlayerLocation(Settings.DefaultLatitude, Settings.DefaultLongitude, 100);
-                    await RecycleItems(client);
-                    if(Settings.DratiniMode)
-                    {
-                        await Task.Delay(1000);
-                    }
-                    else
-                    {
-                        await Task.Delay(15000);
-                    }                
-                    //If timer hits 30 mins reset
-                    if(_timer.ElapsedMilliseconds > 1800000)
-                    {
-                        System.Console.WriteLine("Resetting to refresh timeout");
-                        await Task.Delay(5000);
-                        _timer.Reset();
-                        goto ReExecute;
-                    }   
+                            await Task.Delay(15000);
+                            //If timer hits 30 mins reset
+                            if (_timer.ElapsedMilliseconds > 1800000)
+                            {
+                                System.Console.WriteLine("Resetting to refresh timeout");
+                                await Task.Delay(5000);
+                                _timer.Reset();
+                                goto ReExecute;
+                            }
+                            break;
+                    };
                 }
             }
             catch (Exception e)
@@ -294,17 +257,6 @@ namespace PokemonGo.RocketAPI.Console
                     await client.Inventory.NicknamePokemon(pokemon.Id, pokemon.PokemonId.ToString());
                     
                 }
-            }
-        }
-
-        private static async Task ExecuteFarmingDratinis(Client client)
-        {
-            var mapObjects = await client.Map.GetMapObjects();
-            foreach (var coord in Common.Coordinates)
-            {
-                var update = await client.Player.UpdatePlayerLocation(coord.Item1, coord.Item2, 100);
-                
-                await ExecuteCatchAllNearbyPokemons(client);
             }
         }
 
@@ -359,7 +311,7 @@ namespace PokemonGo.RocketAPI.Console
                             await TransferAllButStrongestUnwantedPokemon(client);
                         }
 
-                        if(!Settings.ItemMode)
+                        if(Settings.Mode != SettingMode.ItemMode)
                         {
                             if (pokeStop.LureInfo != null)
                             {
@@ -367,7 +319,6 @@ namespace PokemonGo.RocketAPI.Console
                             }
 
                             await ExecuteCatchAllNearbyPokemons(client);
-
                         }
 
                         if (fortSearch.ExperienceAwarded == 0)
@@ -449,12 +400,7 @@ namespace PokemonGo.RocketAPI.Console
             var mapObjects = await client.Map.GetMapObjects();
 
             var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons);
-
-            if(Settings.DratiniMode)
-            {
-                pokemons = pokemons.Where(x => x.PokemonId == PokemonId.Dratini || x.PokemonId == PokemonId.Dragonair || x.PokemonId == PokemonId.Dragonite);
-            }
-
+            
             foreach (var pokemon in pokemons)
             {
                 //var update = await client.Player.UpdatePlayerLocation(pokemon.Latitude, pokemon.Longitude, 100);
@@ -495,14 +441,6 @@ namespace PokemonGo.RocketAPI.Console
                         ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}  IV {Iv}" 
                         : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away..");
                 }
-                if (Settings.DratiniMode)
-                {
-                    var families = await Helper.GetPokemonFamilies(inventoryBalls);
-                    System.Console.Title = string.Format($"{Settings.PtcUsername} Dratini Candy: {families.First(x => x.Item1 == PokemonFamilyId.FamilyDratini)?.Item2}");
-                    _inventory = await client.Inventory.GetInventory();
-                }
-
-                //await Task.Delay(5000);
             }
         }
 
@@ -606,7 +544,7 @@ namespace PokemonGo.RocketAPI.Console
         private static async Task RecycleItems(Client client)
         {
             var inventory = await client.Inventory.GetInventory();
-            var itemRecycleList = Settings.RecycleMode ? Enum.GetValues(typeof(ItemId)).Cast<ItemId>().Where(x => !Common.itemFarmingList.Contains(x)) : Common.itemRecycleList;
+            var itemRecycleList = Settings.Mode == SettingMode.RecycleMode ? Enum.GetValues(typeof(ItemId)).Cast<ItemId>().Where(x => !Common.itemFarmingList.Contains(x)) : Common.itemRecycleList;
 
             var items = inventory.InventoryDelta.InventoryItems
                 .Select(i => i.InventoryItemData?.Item)
