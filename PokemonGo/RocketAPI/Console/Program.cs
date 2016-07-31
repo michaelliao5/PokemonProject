@@ -191,7 +191,14 @@ namespace PokemonGo.RocketAPI.Console
                 
                 while (true)
                 {
-                    if(Settings.RecycleMode)
+                    if(Settings.ShowStatsMode)
+                    {
+                        System.Console.WriteLine($"Showing Status");
+                        await ShowPokemonStats(client);
+                        await Task.Delay(5000);
+                        System.Console.ReadLine();
+                    }
+                    else if(Settings.RecycleMode)
                     {
                         System.Console.WriteLine($"Starting Recycle Mode");
                         await CleanInventory(client);
@@ -261,12 +268,26 @@ namespace PokemonGo.RocketAPI.Console
             }
         }
 
+        private static async Task ShowPokemonStats(Client client)
+        {
+            var inventory = await client.Inventory.GetInventory();
+            if (inventory != null && inventory.InventoryDelta != null)
+            {
+                //var dust = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.)
+                var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p.PokemonId != default(PokemonId));
+                foreach (var pokemon in pokemons.OrderBy(x => x.Cp))
+                {
+                    System.Console.WriteLine($"Pokemon {pokemon.PokemonId} CP {pokemon.Cp}");
+                }
+            }
+        }
+
         private static async Task RenameAllPokemons(Client client)
         {
             var inventory = await client.Inventory.GetInventory();
             if (inventory != null && inventory.InventoryDelta != null)
             {
-                var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p.PokemonId != null);
+                var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p.PokemonId != default(PokemonId));
                 foreach(var pokemon in pokemons.Where(x => x.Nickname != x.PokemonId.ToString()))
                 {
                     System.Console.WriteLine($"Renaming Pokemon {pokemon.PokemonId}");
@@ -605,7 +626,7 @@ namespace PokemonGo.RocketAPI.Console
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
             var firstEvolvePokemons = pokemons.Where(x => Common.EvolveLevelOnePokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
 
-            if(pokemons.Where(x => x.Cp > 2000).Count() > 10)
+            if(pokemons.Where(x => x.Cp > 2000).Count() > 20)
             {
                 System.Console.WriteLine("Already Published");
                 publishEnabled = false;
