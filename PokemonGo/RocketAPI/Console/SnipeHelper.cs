@@ -19,25 +19,25 @@ namespace PokemonGo.RocketAPI.Console
 {
     public static class SnipeHelper
     {
-        static List<long> SnipedIds = new List<long>();
+        static List<PokemonLocation> SnipedIds = new List<PokemonLocation>();
         public static async Task Scan(Client client, GetInventoryResponse inventory)
         {
                 var res = await SnipeScanForPokemonUsingDiscord();
-                foreach (var pokemon in res.pokemon.Where(x => Common.SnipePokemons.Select(y => (int)y).Contains(x.pokemonId) && !SnipedIds.Contains(x.id)))
+                foreach (var pokemon in res.pokemon.Where(x => Common.SnipePokemons.Select(y => (int)y).Contains(x.pokemonId) && !SnipedIds.Any(p=> p.Equals(x))))
                 {
                     System.Console.WriteLine($"OP SNIPER Scanned Location Lat:{pokemon.latitude}, Lng:{pokemon.longitude} Pokemon:{(PokemonId)pokemon.pokemonId}");
                     if (await Sniping(client, new Location(pokemon.latitude, pokemon.longitude), inventory))
                     {
-                        SnipedIds.Add(pokemon.id);
+                        SnipedIds.Add(new PokemonLocation(pokemon.latitude, pokemon.longitude));
                     }
                 }
                 res = await SnipeScanForPokemon();
-                foreach (var pokemon in res.pokemon.Where(x => Common.SnipePokemons.Select(y => (int)y).Contains(x.pokemonId) && !SnipedIds.Contains(x.id)))
+                foreach (var pokemon in res.pokemon.Where(x => Common.SnipePokemons.Select(y => (int)y).Contains(x.pokemonId) && !SnipedIds.Any(p => p.Equals(x))))
                 {
                     System.Console.WriteLine($"Scanned Location Lat:{pokemon.latitude}, Lng:{pokemon.longitude} Pokemon:{(PokemonId)pokemon.pokemonId}");
                     if (await Sniping(client, new Location(pokemon.latitude, pokemon.longitude), inventory))
                     {
-                        SnipedIds.Add(pokemon.id);
+                        SnipedIds.Add(new PokemonLocation(pokemon.latitude, pokemon.longitude));
                     }
                 }
         }
