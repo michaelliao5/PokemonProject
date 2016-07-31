@@ -32,7 +32,7 @@ namespace PokemonGo.RocketAPI.Console
         public static double SidneyLongitude = 151.21024131774902;
         
         public static int PublishLevel = 32;
-        public static int StartSniping = 28;
+        public static int StartSniping = 30;
         public static bool UsingIV = false;
         public static SettingMode Mode = SettingMode.Undefined;
 
