@@ -10,6 +10,14 @@ namespace PokemonGo.RocketAPI.Console
 {
     public static class Common
     {
+        public static List<PokemonId> SnipePokemons = new List<PokemonId>
+        {
+            PokemonId.Lapras,
+            PokemonId.Snorlax,
+            PokemonId.Blastoise,
+            PokemonId.Dragonite,
+            PokemonId.Charizard,
+        };
         public static IList<Location> DratiniSpawn = new List<Location>
         {
             new Location(48.851438, 2.357557),

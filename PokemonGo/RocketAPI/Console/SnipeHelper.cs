@@ -9,39 +9,56 @@ using System.IO;
 using POGOProtos.Enums;
 using POGOProtos.Networking.Responses;
 using POGOProtos.Inventory.Item;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Sockets;
+using Newtonsoft.Json.Linq;
+using System.Text.RegularExpressions;
 
 namespace PokemonGo.RocketAPI.Console
 {
     public static class SnipeHelper
     {
+        static List<long> SnipedIds = new List<long>();
         public static async Task Scan(Client client, GetInventoryResponse inventory)
         {
-            foreach(var location in Common.DratiniSpawn)
-            {
-                var res = SnipeScanForPokemon(location);
-                foreach(var pokemon in res.pokemon.Where(x => x.pokemonId == (int)PokemonId.Dratini))
+                var res = await SnipeScanForPokemonUsingDiscord();
+                foreach (var pokemon in res.pokemon.Where(x => Common.SnipePokemons.Select(y => (int)y).Contains(x.pokemonId) && !SnipedIds.Contains(x.id)))
                 {
-                    System.Console.WriteLine($"Scanned Location Lat:{location.Latitude}, Lng:{location.Longitude} Pokemon:{(PokemonId)pokemon.pokemonId}");
-                    await Sniping(client, location, inventory);
+                    System.Console.WriteLine($"OP SNIPER Scanned Location Lat:{pokemon.latitude}, Lng:{pokemon.longitude} Pokemon:{(PokemonId)pokemon.pokemonId}");
+                    if (await Sniping(client, new Location(pokemon.latitude, pokemon.longitude), inventory))
+                    {
+                        SnipedIds.Add(pokemon.id);
+                    }
                 }
-            }
+                res = await SnipeScanForPokemon();
+                foreach (var pokemon in res.pokemon.Where(x => Common.SnipePokemons.Select(y => (int)y).Contains(x.pokemonId) && !SnipedIds.Contains(x.id)))
+                {
+                    System.Console.WriteLine($"Scanned Location Lat:{pokemon.latitude}, Lng:{pokemon.longitude} Pokemon:{(PokemonId)pokemon.pokemonId}");
+                    if (await Sniping(client, new Location(pokemon.latitude, pokemon.longitude), inventory))
+                    {
+                        SnipedIds.Add(pokemon.id);
+                    }
+                }
         }
-        private static async Task Sniping(Client client, Location newLoca, GetInventoryResponse _inventory)
+        private static async Task<bool> Sniping(Client client, Location newLoca, GetInventoryResponse _inventory)
         {
             var curLocation = new Location(client.CurrentLatitude, client.CurrentLongitude);
 
             await client.Player.UpdatePlayerLocation(newLoca.Latitude, newLoca.Longitude, 100);
 
+            await Task.Delay(5000);
+
             var mapObjects = await client.Map.GetMapObjects();
 
-            var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons).Where(x => x.PokemonId == PokemonId.Dratini);
+            var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons).Where(x => Common.SnipePokemons.Contains(x.PokemonId));
             
             foreach (var pokemon in pokemons)
             {
                 System.Console.WriteLine($"Started Sniping {pokemon.PokemonId}");
                 var encounterPokemonRespone = await client.Encounter.EncounterPokemon(pokemon.EncounterId, pokemon.SpawnPointId);
 
-                await client.Player.UpdatePlayerLocation(curLocation.Latitude, curLocation.Longitude, 100);
+                await client.Player.UpdatePlayerLocation(curLocation.Latitude, curLocation.Longitude, 100);                
 
                 CatchPokemonResponse caughtPokemonResponse;
 
@@ -69,8 +86,11 @@ namespace PokemonGo.RocketAPI.Console
                         ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We sniped a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp} "
                         : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away..");
                     System.Console.WriteLine($"Finished Sniping {pokemon.PokemonId}");
+                    return true;
                 }
             }
+            await client.Player.UpdatePlayerLocation(curLocation.Latitude, curLocation.Longitude, 100);
+            return false;
         }
         private class PokemonLocation
         {
@@ -115,28 +135,81 @@ namespace PokemonGo.RocketAPI.Console
                 return Math.Abs(latitude - p.latitude) < 0.0001 && Math.Abs(longitude - p.longitude) < 0.0001;
             }
         }
+        public class SniperInfo
+        {
+            public double Latitude { get; set; }
+            public double Longitude { get; set; }
+            public double Iv { get; set; }
+            public DateTime TimeStamp { get; set; }
+            public PokemonId Id { get; set; }
+
+            [JsonIgnore]
+            public DateTime TimeStampAdded { get; set; } = DateTime.Now;
+        }
         private class ScanResult
         {
             public string status { get; set; }
             public List<PokemonLocation> pokemon { get; set; }
         }
-        private static ScanResult SnipeScanForPokemon(Location location)
+        private static async Task<ScanResult> SnipeScanForPokemonUsingDiscord()
         {
-            var formatter = new System.Globalization.NumberFormatInfo() { NumberDecimalSeparator = "." };
-            var uri = $"https://pokevision.com/map/data/{location.Latitude.ToString(formatter)}/{location.Longitude.ToString(formatter)}";
-
-            ScanResult scanResult;
+            var scanResult = new ScanResult();
+            scanResult.pokemon = new List<PokemonLocation>();
             try
             {
-                var request = WebRequest.CreateHttp(uri);
-                request.Accept = "application/json";
-                request.Method = "GET";
-                request.Timeout = 1000;
-
-                var resp = request.GetResponse();
-                var reader = new StreamReader(resp.GetResponseStream());
-
-                scanResult = JsonConvert.DeserializeObject<ScanResult>(reader.ReadToEnd());
+                var lines = File.ReadAllLines("c:\\PokemonOutput\\out.txt");
+                foreach(var line in lines)
+                {
+                    var splitted = line.Split('|');
+                    var id = int.Parse(splitted[0]);
+                    var pokemonId = int.Parse(splitted[1]);
+                    var lat = double.Parse(splitted[2]);
+                    var lng = double.Parse(splitted[3]);
+                    scanResult.pokemon.Add(new PokemonLocation(lat, lng) {
+                        id = id,
+                        latitude = lat,
+                        longitude = lng,
+                        pokemonId = pokemonId,
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // most likely System.IO.IOException
+            }
+            return scanResult;
+        }
+        private static async Task<ScanResult> SnipeScanForPokemon()
+        {
+            var formatter = new System.Globalization.NumberFormatInfo() { NumberDecimalSeparator = "." };
+            ScanResult scanResult = new ScanResult();
+            scanResult.pokemon = new List<PokemonLocation>();
+            try
+            {
+                using (var httpClient = new System.Net.Http.HttpClient())
+                {
+                    httpClient.Timeout = TimeSpan.FromSeconds(3);
+                    httpClient.DefaultRequestHeaders.Accept.Add(
+                        new MediaTypeWithQualityHeaderValue("application/json"));
+                    var response = await httpClient.GetAsync("http://pokesnipers.com/api/v1/pokemon.json");
+                    response.EnsureSuccessStatusCode();
+                    var json = await response.Content.ReadAsStringAsync();
+                    dynamic pokesniper = JsonConvert.DeserializeObject(json);
+                    JArray results = pokesniper.results;
+                    foreach (var result in results)
+                    {
+                        PokemonId pokeId;
+                        long id;
+                        Enum.TryParse(result.Value<string>("name"), out pokeId);
+                        long.TryParse(CleanNonDigits(result.Value<string>("id")), out id);
+                        var a = new PokemonLocation(Convert.ToDouble(result.Value<string>("coords").Split(',')[0]), Convert.ToDouble(result.Value<string>("coords").Split(',')[1]))
+                        {
+                            pokemonId = (int)pokeId,
+                            id = id,
+                        };
+                        scanResult.pokemon.Add(a);
+                    }
+                }
             }
             catch (Exception)
             {
@@ -147,6 +220,12 @@ namespace PokemonGo.RocketAPI.Console
                 };
             }
             return scanResult;
+        }
+
+        static string CleanNonDigits(string num)
+        {
+            Regex digitsOnly = new Regex(@"[^\d]");
+            return digitsOnly.Replace(num, "");
         }
     }
 }

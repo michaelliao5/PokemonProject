@@ -131,6 +131,13 @@ namespace PokemonGo.RocketAPI.Console
                 Settings.PublishLevel = int.Parse(lvl);
             }
 
+            System.Console.WriteLine($"Use IV Mode? (y/n)?");
+            var ivMode = System.Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(ivMode) && ivMode.Trim() == "y")
+            {
+                Settings.UsingIV = true;
+            }
+
 
             System.Console.WriteLine($"Using PTC? (y/n)?");
             var ptc = System.Console.ReadLine();
@@ -480,7 +487,7 @@ namespace PokemonGo.RocketAPI.Console
             var inventory = await client.Inventory.GetInventory();
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
 
-            foreach (var unwantedPokemonType in pokemonTypes.Where(x => !Common.WantedPokemons.Contains(x)))
+            foreach (var unwantedPokemonType in pokemonTypes)
             {
                 var pokemonOfDesiredType = pokemons.Where(p => p.PokemonId == unwantedPokemonType)
                                                    .OrderByDescending(p => Settings.UsingIV ? PokemonInfo.CalculatePokemonPerfection(p) : p.Cp)
@@ -488,7 +495,7 @@ namespace PokemonGo.RocketAPI.Console
 
                 var unwantedPokemon = new List<PokemonData>();
 
-                if (unwantedPokemonType == PokemonId.Dratini || unwantedPokemonType == PokemonId.Eevee)
+                if (Common.WantedPokemons.Contains(unwantedPokemonType))
                 {
                     if (pokemonOfDesiredType.Count > 4)
                     {
@@ -592,6 +599,14 @@ namespace PokemonGo.RocketAPI.Console
             var inventory = await client.Inventory.GetInventory();
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
             var firstEvolvePokemons = pokemons.Where(x => Common.EvolveLevelOnePokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
+
+            if(pokemons.Where(x => x.Cp > 2000).Count() > 10)
+            {
+                System.Console.WriteLine("Already Published");
+                publishEnabled = false;
+                Settings.PublishLevel = 50;
+                return;
+            }
 
             System.Console.WriteLine("Level one Evolving");
 
