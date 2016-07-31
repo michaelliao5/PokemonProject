@@ -26,7 +26,7 @@ namespace PokemonGo.RocketAPI.Console
         public static double DratiniLatitude = 38.54292094612488;
         public static double DratiniLongitude = -121.22782230377197;
         public static int PublishLevel = 32;
-        public static int StartSniping = 30;
+        public static int StartSniping = 28;
         public static bool DratiniMode = false;
         public static bool UsingIV = false;
         public static bool RenameMode = false;
