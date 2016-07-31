@@ -96,7 +96,6 @@ namespace PokemonGo.RocketAPI.Console
             PokemonId.Drowzee,
             PokemonId.Exeggcute,
             PokemonId.Cubone,
-            PokemonId.Hitmonlee,
             PokemonId.Koffing,
             PokemonId.Rhyhorn,
             PokemonId.Staryu,
