@@ -20,26 +20,34 @@ namespace PokemonGo.RocketAPI.Console
     public static class SnipeHelper
     {
         static List<PokemonLocation> SnipedIds = new List<PokemonLocation>();
+        static int tabuLength = 0;
+        
         public static async Task Scan(Client client, GetInventoryResponse inventory)
         {
-                var res = await SnipeScanForPokemonUsingDiscord();
-                foreach (var pokemon in res.pokemon.Where(x => Common.SnipePokemons.Select(y => (int)y).Contains(x.pokemonId) && !SnipedIds.Any(p=> p.Equals(x))))
+            var res = await SnipeScanForPokemonUsingDiscord();
+            foreach (var pokemon in res.pokemon.Where(x => Common.SnipePokemons.Select(y => (int)y).Contains(x.pokemonId) && !SnipedIds.Any(p => p.Equals(x))))
+            {
+                System.Console.WriteLine($"OP SNIPER Scanned Location Lat:{pokemon.latitude}, Lng:{pokemon.longitude} Pokemon:{(PokemonId)pokemon.pokemonId}");
+                if (await Sniping(client, new Location(pokemon.latitude, pokemon.longitude), inventory))
                 {
-                    System.Console.WriteLine($"OP SNIPER Scanned Location Lat:{pokemon.latitude}, Lng:{pokemon.longitude} Pokemon:{(PokemonId)pokemon.pokemonId}");
-                    if (await Sniping(client, new Location(pokemon.latitude, pokemon.longitude), inventory))
-                    {
-                        SnipedIds.Add(new PokemonLocation(pokemon.latitude, pokemon.longitude));
-                    }
+                    SnipedIds.Add(new PokemonLocation(pokemon.latitude, pokemon.longitude));
                 }
-                res = await SnipeScanForPokemon();
-                foreach (var pokemon in res.pokemon.Where(x => Common.SnipePokemons.Select(y => (int)y).Contains(x.pokemonId) && !SnipedIds.Any(p => p.Equals(x))))
+            }
+            res = await SnipeScanForPokemon();
+            foreach (var pokemon in res.pokemon.Where(x => Common.SnipePokemons.Select(y => (int)y).Contains(x.pokemonId) && !SnipedIds.Any(p => p.Equals(x))))
+            {
+                System.Console.WriteLine($"Scanned Location Lat:{pokemon.latitude}, Lng:{pokemon.longitude} Pokemon:{(PokemonId)pokemon.pokemonId}");
+                if (await Sniping(client, new Location(pokemon.latitude, pokemon.longitude), inventory))
                 {
-                    System.Console.WriteLine($"Scanned Location Lat:{pokemon.latitude}, Lng:{pokemon.longitude} Pokemon:{(PokemonId)pokemon.pokemonId}");
-                    if (await Sniping(client, new Location(pokemon.latitude, pokemon.longitude), inventory))
-                    {
-                        SnipedIds.Add(new PokemonLocation(pokemon.latitude, pokemon.longitude));
-                    }
+                    SnipedIds.Add(new PokemonLocation(pokemon.latitude, pokemon.longitude));
                 }
+            }
+            tabuLength++;
+            if(tabuLength > 50)
+            {
+                tabuLength = 0;
+                SnipedIds.Clear();
+            }
         }
         private static async Task<bool> Sniping(Client client, Location newLoca, GetInventoryResponse _inventory)
         {
@@ -165,12 +173,15 @@ namespace PokemonGo.RocketAPI.Console
                     var pokemonId = int.Parse(splitted[1]);
                     var lat = double.Parse(splitted[2]);
                     var lng = double.Parse(splitted[3]);
-                    scanResult.pokemon.Add(new PokemonLocation(lat, lng) {
+                    var loca = new PokemonLocation(lat, lng)
+                    {
                         id = id,
                         latitude = lat,
                         longitude = lng,
                         pokemonId = pokemonId,
-                    });
+                    };
+                    if (!scanResult.pokemon.Any(x => x.Equals(loca)))
+                        scanResult.pokemon.Add(loca);
                 }
             }
             catch (Exception ex)
