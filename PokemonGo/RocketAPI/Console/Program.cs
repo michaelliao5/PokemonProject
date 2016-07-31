@@ -27,6 +27,7 @@ namespace PokemonGo.RocketAPI.Console
         static int basePokemonCount = 250;        
         static string password = "Poke1234";
         static bool publishEnabled = false;
+        static bool snipingEnabled = false;
         static GetInventoryResponse _inventory;
         static Stopwatch _timer = new Stopwatch();
 
@@ -325,6 +326,10 @@ namespace PokemonGo.RocketAPI.Console
                             {
                                 publishEnabled = true;
                             }
+                            if (pData.Level >= Settings.StartSniping)
+                            {
+                                snipingEnabled = true;
+                            }
                         }
 
 
@@ -356,7 +361,7 @@ namespace PokemonGo.RocketAPI.Console
                         }
 
                         scanCount++;
-                        if(scanCount == 5)
+                        if(scanCount == 5 && snipingEnabled)
                         {
                             scanCount = 0;
                             await SnipeHelper.Scan(client, _inventory);
