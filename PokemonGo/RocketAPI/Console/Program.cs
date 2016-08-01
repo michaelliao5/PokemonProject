@@ -446,11 +446,26 @@ namespace PokemonGo.RocketAPI.Console
 
         private static async Task TransferAllButStrongestUnwantedPokemon(Client client)
         {
-            System.Console.WriteLine("Transferring Pokemon");
             var pokemonTypes = Enum.GetValues(typeof(PokemonId)).Cast<PokemonId>();
+            
+            System.Console.WriteLine("Evolving Garbage Pokemon");
             var inventory = await client.Inventory.GetInventory();
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
 
+            foreach (var garbage in pokemons.Where(x => Common.EvolveJunkPokemons.Contains(x.PokemonId)))
+            {
+                EvolvePokemonResponse response;
+                do
+                {
+                    response = await client.Inventory.EvolvePokemon(garbage.Id);
+                } while (response.Result != EvolvePokemonResponse.Types.Result.Success && response.Result != EvolvePokemonResponse.Types.Result.FailedInsufficientResources);
+                System.Console.WriteLine($"Evolved {garbage.PokemonId} for 500 XP");
+            }
+
+            inventory = await client.Inventory.GetInventory();
+            pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
+
+            System.Console.WriteLine("Transferring Pokemon");
             foreach (var unwantedPokemonType in pokemonTypes)
             {
                 var pokemonOfDesiredType = pokemons.Where(p => p.PokemonId == unwantedPokemonType)
