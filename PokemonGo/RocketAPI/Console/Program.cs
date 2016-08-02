@@ -234,14 +234,19 @@ namespace PokemonGo.RocketAPI.Console
         private static async Task ShowPokemonStats(Client client)
         {
             var inventory = await client.Inventory.GetInventory();
+            var profile = await client.Player.GetPlayer();
             if (inventory != null && inventory.InventoryDelta != null)
             {
-                //var dust = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.)
+                var dust = profile.PlayerData.Currencies[1].Amount;
+                var level = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PlayerStats).Where(p => p != null && p?.Level > 0).First().Level;
                 var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p.PokemonId != default(PokemonId));
+                
                 foreach (var pokemon in pokemons.OrderBy(x => x.Cp))
                 {
                     System.Console.WriteLine($"Pokemon {pokemon.PokemonId} CP {pokemon.Cp}");
                 }
+
+                System.Console.WriteLine($"Player Level {level} Dust {dust}");
             }
         }
 
