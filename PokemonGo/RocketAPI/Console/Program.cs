@@ -596,7 +596,7 @@ namespace PokemonGo.RocketAPI.Console
             var inventory = await client.Inventory.GetInventory();
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
 
-            if(Settings.Mode != SettingMode.PowerMode)
+            if(Settings.Mode != SettingMode.PowerMode && Settings.Mode != SettingMode.ThreeKMode)
             {
                 var firstEvolvePokemons = pokemons.Where(x => Common.EvolveLevelOnePokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
 
