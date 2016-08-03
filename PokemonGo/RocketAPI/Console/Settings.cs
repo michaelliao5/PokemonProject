@@ -12,6 +12,7 @@ namespace PokemonGo.RocketAPI.Console
         ItemMode = 3,
         ShowStatsMode = 4,
         PowerMode = 5,
+        ThreeKMode = 6,
     }
     public static class Settings
     {
@@ -35,7 +36,7 @@ namespace PokemonGo.RocketAPI.Console
         public static int PublishLevel = 30;
         public static int StartSniping = 28;
         public static bool UsingIV = false;
-        public static SettingMode Mode = SettingMode.PowerMode;
+        public static SettingMode Mode = SettingMode.ThreeKMode;
 
         //San Fran 37.80788523279169,-122.41833686828613
         //Sydney -33.86467850677313,151.21024131774902

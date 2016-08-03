@@ -112,11 +112,15 @@ namespace PokemonGo.RocketAPI.Console
                 }                
             }
 
-            System.Console.WriteLine($"Input Publishing Level, Enter if you want 32");
+            System.Console.WriteLine($"Input Publishing Level, Enter if you want 30");
             var lvl = System.Console.ReadLine();
             if(!string.IsNullOrWhiteSpace(lvl))
             {
                 Settings.PublishLevel = int.Parse(lvl);
+                if(Settings.PublishLevel > 35)
+                {
+                    Settings.Mode = SettingMode.Undefined;
+                }
             }
 
             System.Console.WriteLine($"Use IV Mode? (y/n)?");
@@ -204,15 +208,14 @@ namespace PokemonGo.RocketAPI.Console
                         default:
                             if (publishEnabled)
                             {
-                                await PublishingAccount(client);
-                                await Task.Delay(15000);
-                                System.Console.WriteLine($"ACCOUNT READY");
-                                System.Console.ReadLine();
+                                if(await PublishingAccount(client) || Settings.Mode != SettingMode.ThreeKMode)
+                                {
+                                    await Task.Delay(15000);
+                                    System.Console.WriteLine($"ACCOUNT READY");
+                                    System.Console.ReadLine();
+                                }
                             }
-                            else
-                            {
-                                await ExecuteFarmingPokestopsAndPokemons(client);
-                            }
+                            await ExecuteFarmingPokestopsAndPokemons(client);
                             System.Console.WriteLine("Resetting Player Position");
                             var update = await client.Player.UpdatePlayerLocation(Settings.DefaultLatitude, Settings.DefaultLongitude, 100);
                             await RecycleItems(client);
@@ -238,7 +241,7 @@ namespace PokemonGo.RocketAPI.Console
             }
         }
 
-        private static async Task ShowPokemonStats(Client client)
+        private static async Task<bool> ShowPokemonStats(Client client)
         {
             var inventory = await client.Inventory.GetInventory();
             var profile = await client.Player.GetPlayer();
@@ -248,13 +251,16 @@ namespace PokemonGo.RocketAPI.Console
                 var level = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PlayerStats).Where(p => p != null && p?.Level > 0).First().Level;
                 var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p.PokemonId != default(PokemonId));
                 
-                foreach (var pokemon in pokemons.OrderBy(x => x.Cp))
+                foreach (var pokemon in pokemons.Where(x => x.Cp > 2000).OrderBy(x => x.Cp))
                 {
                     System.Console.WriteLine($"Pokemon {pokemon.PokemonId} CP {pokemon.Cp}");
                 }
 
                 System.Console.WriteLine($"Player Level {level} Dust {dust}");
+
+                return pokemons.Any(x => x.Cp > 3000 && x.PokemonId == PokemonId.Dragonite);
             }
+            return false;
         }
 
         private static async Task RenameAllPokemons(Client client)
@@ -584,7 +590,7 @@ namespace PokemonGo.RocketAPI.Console
                 
             }
         }
-        private static async Task PublishingAccount(Client client)
+        private static async Task<bool> PublishingAccount(Client client)
         {
             System.Console.WriteLine("Publishing Account");            
             var inventory = await client.Inventory.GetInventory();
@@ -599,7 +605,7 @@ namespace PokemonGo.RocketAPI.Console
                     System.Console.WriteLine("Already Published");
                     publishEnabled = false;
                     Settings.PublishLevel = 50;
-                    return;
+                    return false;
                 }
 
                 System.Console.WriteLine("Level one Evolving");
@@ -662,8 +668,8 @@ namespace PokemonGo.RocketAPI.Console
             
 
             System.Console.WriteLine("[!] finished Publishing");
-            await ShowPokemonStats(client);
-            await Task.Delay(5000);
+            return await ShowPokemonStats(client);
+            //await Task.Delay(5000);
         }
     }
 }
