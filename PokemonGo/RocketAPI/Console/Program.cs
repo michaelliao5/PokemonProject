@@ -208,7 +208,7 @@ namespace PokemonGo.RocketAPI.Console
                         default:
                             if (publishEnabled)
                             {
-                                if(await PublishingAccount(client) || Settings.Mode != SettingMode.ThreeKMode)
+                                if(await PublishingAccount(client))
                                 {
                                     await Task.Delay(15000);
                                     System.Console.WriteLine($"ACCOUNT READY");
