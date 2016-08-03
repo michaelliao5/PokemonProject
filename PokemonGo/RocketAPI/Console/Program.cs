@@ -214,6 +214,7 @@ namespace PokemonGo.RocketAPI.Console
                                     System.Console.WriteLine($"ACCOUNT READY");
                                     System.Console.ReadLine();
                                 }
+                                Settings.Mode = SettingMode.ThreeKMode;
                             }
                             await ExecuteFarmingPokestopsAndPokemons(client);
                             System.Console.WriteLine("Resetting Player Position");
