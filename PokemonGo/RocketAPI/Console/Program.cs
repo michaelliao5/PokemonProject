@@ -259,7 +259,7 @@ namespace PokemonGo.RocketAPI.Console
 
                 System.Console.WriteLine($"Player Level {level} Dust {dust}");
 
-                return pokemons.Any(x => x.Cp > 3000 && x.PokemonId == PokemonId.Dragonite);
+                return pokemons.Any(x => x.Cp > 3000 && x.PokemonId == PokemonId.Dragonite) && dust > 50000;
             }
             return false;
         }
@@ -664,6 +664,11 @@ namespace PokemonGo.RocketAPI.Console
                     } while (response.Result != UpgradePokemonResponse.Types.Result.ErrorInsufficientResources && response.Result != UpgradePokemonResponse.Types.Result.ErrorUpgradeNotAvailable);
 
                     System.Console.WriteLine($"Successfully Powered {mon.PokemonId} CP {mon.Cp}");
+
+                    if(Common.PublishingPowerUpPokemons.Count > 2)
+                    {
+                        Common.PublishingPowerUpPokemons.RemoveAt(Common.PublishingPowerUpPokemons.Count-1);
+                    }
                 }
             }
             
