@@ -59,7 +59,7 @@ namespace PokemonGo.RocketAPI.Console
 
             var mapObjects = await client.Map.GetMapObjects();
 
-            var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons).Where(x => Common.SnipePokemons.Contains(x.PokemonId));
+            var pokemons = mapObjects.Item1.MapCells.SelectMany(i => i.CatchablePokemons).Where(x => Common.SnipePokemons.Contains(x.PokemonId));
             
             foreach (var pokemon in pokemons)
             {

@@ -18,6 +18,7 @@ using POGOProtos.Enums;
 using POGOProtos.Inventory.Item;
 using POGOProtos.Data;
 using System.Diagnostics;
+using PoGo.NecroBot.Logic.Common;
 
 namespace PokemonGo.RocketAPI.Console
 {
@@ -155,17 +156,13 @@ namespace PokemonGo.RocketAPI.Console
             if(Settings.Mode == SettingMode.ItemMode)
                 System.Console.WriteLine("Using Item Farming Mode");
 
-            var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.GoogleRefreshToken, Settings.AuthType);
+            var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.GoogleRefreshToken, Settings.AuthType, Settings.GoogleUsername, Settings.GooglePassword, Settings.PtcUsername, Settings.PtcPassword);
+            client.ApiFailure = new ApiFailureStrategy(client);
         ReExecute:
             try
             {
                 _timer.Start();
-                if (Settings.AuthType == AuthType.Ptc)
-                {
-                    await client.Login.DoPtcLogin(Settings.PtcUsername, Settings.PtcPassword);
-                }
-                else if (Settings.AuthType == AuthType.Google)
-                    await client.Login.DoGoogleLogin(Settings.GoogleUsername, Settings.GooglePassword);                
+                await client.Login.DoLogin();             
                 
                 while (true)
                 {
@@ -264,7 +261,7 @@ namespace PokemonGo.RocketAPI.Console
         {
             var mapObjects = await client.Map.GetMapObjects();
 
-            var pokeStops = mapObjects.MapCells.SelectMany(i => i.Forts).Where(i => i.Type == FortType.Checkpoint && i.CooldownCompleteTimestampMs < DateTime.UtcNow.ToUnixTime());
+            var pokeStops = mapObjects.Item1.MapCells.SelectMany(i => i.Forts).Where(i => i.Type == FortType.Checkpoint && i.CooldownCompleteTimestampMs < DateTime.UtcNow.ToUnixTime());
             pokeStops = Helper.SortRoute(pokeStops.ToList());
 
             int waitCount = 0;
@@ -399,7 +396,7 @@ namespace PokemonGo.RocketAPI.Console
         {
             var mapObjects = await client.Map.GetMapObjects();
 
-            var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons);
+            var pokemons = mapObjects.Item1.MapCells.SelectMany(i => i.CatchablePokemons);
             
             foreach (var pokemon in pokemons)
             {

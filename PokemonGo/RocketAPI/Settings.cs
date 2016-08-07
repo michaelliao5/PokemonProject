@@ -2,17 +2,29 @@
 
 namespace PokemonGo.RocketAPI
 {
-    public class Settings
+    public interface ISettings
     {
-        public Settings() { }
-        public AuthType AuthType { get; set; }
-        public double DefaultLatitude { get; set; }
-        public double DefaultLongitude { get; set; }
-        public double DefaultAltitude { get; set; }
-        public string GoogleRefreshToken { get; set; }
-        public string PtcPassword { get; set; }
-        public string PtcUsername { get; set; }
-        public string GoogleUsername { get; set; }
-        public string GooglePassword { get; set; }
+        AuthType AuthType { get; set; }
+        double DefaultLatitude { get; set; }
+        double DefaultLongitude { get; set; }
+        double DefaultAltitude { get; set; }
+        string GoogleRefreshToken { get; set; }
+        string PtcPassword { get; set; }
+        string PtcUsername { get; set; }
+        string GoogleUsername { get; set; }
+        string GooglePassword { get; set; }
+        string DeviceId { get; set; }
+        string AndroidBoardName { get; set; }
+        string AndroidBootloader { get; set; }
+        string DeviceBrand { get; set; }
+        string DeviceModel { get; set; }
+        string DeviceModelIdentifier { get; set; }
+        string DeviceModelBoot { get; set; }
+        string HardwareManufacturer { get; set; }
+        string HardwareModel { get; set; }
+        string FirmwareBrand { get; set; }
+        string FirmwareTags { get; set; }
+        string FirmwareType { get; set; }
+        string FirmwareFingerprint { get; set; }
     }
 }
