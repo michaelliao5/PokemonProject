@@ -30,19 +30,13 @@ namespace PokemonGo.RocketAPI.Console
         };
         public static List<PokemonId> PublishingPowerUpPokemons = new List<PokemonId>
         {
-            PokemonId.Lapras,
-            PokemonId.Snorlax,
             PokemonId.Dragonite,
-            PokemonId.Exeggutor,
-            PokemonId.Vaporeon,
-            PokemonId.Arcanine,
-            PokemonId.Venusaur,
-            PokemonId.Gyarados,
+            PokemonId.Snorlax,
+            PokemonId.Lapras,
             PokemonId.Charizard,
-            PokemonId.Blastoise,
-            PokemonId.Aerodactyl,
-            PokemonId.Machamp,
-            PokemonId.Slowbro,
+            PokemonId.Arcanine,
+            PokemonId.Exeggutor,
+            PokemonId.Gyarados,
         };
 
         public static List<PokemonId> EvolveLevelOnePokemons = new List<PokemonId>

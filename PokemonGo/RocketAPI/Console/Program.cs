@@ -113,11 +113,15 @@ namespace PokemonGo.RocketAPI.Console
                 }                
             }
 
-            System.Console.WriteLine($"Input Publishing Level, Enter if you want 32");
+            System.Console.WriteLine($"Input Publishing Level, Enter if you want 30");
             var lvl = System.Console.ReadLine();
             if(!string.IsNullOrWhiteSpace(lvl))
             {
                 Settings.PublishLevel = int.Parse(lvl);
+                if(Settings.PublishLevel > 35)
+                {
+                    Settings.Mode = SettingMode.Undefined;
+                }
             }
 
             System.Console.WriteLine($"Use IV Mode? (y/n)?");
@@ -175,6 +179,13 @@ namespace PokemonGo.RocketAPI.Console
                             System.Console.ReadLine();
                             break;
 
+                        case SettingMode.PowerMode:
+                            System.Console.WriteLine($"Powering");
+                            await PublishingAccount(client);
+                            await Task.Delay(5000);
+                            System.Console.ReadLine();
+                            break;
+
                         case SettingMode.RecycleMode:
                             System.Console.WriteLine($"Starting Recycle Mode");
                             await CleanInventory(client);
@@ -194,15 +205,15 @@ namespace PokemonGo.RocketAPI.Console
                         default:
                             if (publishEnabled)
                             {
-                                await PublishingAccount(client);
-                                await Task.Delay(15000);
-                                System.Console.WriteLine($"ACCOUNT READY");
-                                System.Console.ReadLine();
+                                if(await PublishingAccount(client))
+                                {
+                                    await Task.Delay(15000);
+                                    System.Console.WriteLine($"ACCOUNT READY");
+                                    System.Console.ReadLine();
+                                }
+                                Settings.Mode = SettingMode.ThreeKMode;
                             }
-                            else
-                            {
-                                await ExecuteFarmingPokestopsAndPokemons(client);
-                            }
+                            await ExecuteFarmingPokestopsAndPokemons(client);
                             System.Console.WriteLine("Resetting Player Position");
                             var update = await client.Player.UpdatePlayerLocation(Settings.DefaultLatitude, Settings.DefaultLongitude, 100);
                             await RecycleItems(client);
@@ -228,18 +239,26 @@ namespace PokemonGo.RocketAPI.Console
             }
         }
 
-        private static async Task ShowPokemonStats(Client client)
+        private static async Task<bool> ShowPokemonStats(Client client)
         {
             var inventory = await client.Inventory.GetInventory();
+            var profile = await client.Player.GetPlayer();
             if (inventory != null && inventory.InventoryDelta != null)
             {
-                //var dust = inventory.InventoryDelta.InventoryItems.Select(x => x.InventoryItemData?.)
+                var dust = profile.PlayerData.Currencies[1].Amount;
+                var level = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PlayerStats).Where(p => p != null && p?.Level > 0).First().Level;
                 var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p.PokemonId != default(PokemonId));
-                foreach (var pokemon in pokemons.OrderBy(x => x.Cp))
+                
+                foreach (var pokemon in pokemons.Where(x => x.Cp > 2000).OrderBy(x => x.Cp))
                 {
                     System.Console.WriteLine($"Pokemon {pokemon.PokemonId} CP {pokemon.Cp}");
                 }
+
+                System.Console.WriteLine($"Player Level {level} Dust {dust}");
+
+                return pokemons.Any(x => x.Cp > 3000 && x.PokemonId == PokemonId.Dragonite) && dust > 50000;
             }
+            return false;
         }
 
         private static async Task RenameAllPokemons(Client client)
@@ -569,55 +588,59 @@ namespace PokemonGo.RocketAPI.Console
                 
             }
         }
-        private static async Task PublishingAccount(Client client)
+        private static async Task<bool> PublishingAccount(Client client)
         {
             System.Console.WriteLine("Publishing Account");            
             var inventory = await client.Inventory.GetInventory();
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
-            var firstEvolvePokemons = pokemons.Where(x => Common.EvolveLevelOnePokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
 
-            if(pokemons.Where(x => x.Cp > 2000).Count() > 20)
+            if(Settings.Mode != SettingMode.PowerMode && Settings.Mode != SettingMode.ThreeKMode)
             {
-                System.Console.WriteLine("Already Published");
-                publishEnabled = false;
-                Settings.PublishLevel = 50;
-                return;
-            }
+                var firstEvolvePokemons = pokemons.Where(x => Common.EvolveLevelOnePokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
 
-            System.Console.WriteLine("Level one Evolving");
-
-            foreach (var monType in firstEvolvePokemons)
-            {
-                var mon = monType.First();
-                EvolvePokemonResponse response;
-                do
+                if (pokemons.Where(x => x.Cp > 2000).Count() > 20)
                 {
-                    response = await client.Inventory.EvolvePokemon(mon.Id);
-                } while (response.Result != EvolvePokemonResponse.Types.Result.Success && response.Result != EvolvePokemonResponse.Types.Result.FailedInsufficientResources);
-                System.Console.WriteLine($"Successfully evolved {mon.PokemonId} CP {mon.Cp}");
-            }
+                    System.Console.WriteLine("Already Published");
+                    publishEnabled = false;
+                    Settings.PublishLevel = 50;
+                    return false;
+                }
 
-            await Task.Delay(5000);
-            inventory = await client.Inventory.GetInventory();
-            pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
-            var secondEvolvePokemons = pokemons.Where(x => Common.EvolveLevelTwoPokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
+                System.Console.WriteLine("Level one Evolving");
 
-            System.Console.WriteLine("Level two Evolving");
-
-            foreach (var monType in secondEvolvePokemons)
-            {
-                var mon = monType.First();
-                EvolvePokemonResponse response;
-                do
+                foreach (var monType in firstEvolvePokemons)
                 {
-                    response = await client.Inventory.EvolvePokemon(mon.Id);
-                } while (response.Result != EvolvePokemonResponse.Types.Result.Success && response.Result != EvolvePokemonResponse.Types.Result.FailedInsufficientResources);
-                System.Console.WriteLine($"Successfully evolved {mon.PokemonId} CP {mon.Cp}");
-            }
+                    var mon = monType.First();
+                    EvolvePokemonResponse response;
+                    do
+                    {
+                        response = await client.Inventory.EvolvePokemon(mon.Id);
+                    } while (response.Result != EvolvePokemonResponse.Types.Result.Success && response.Result != EvolvePokemonResponse.Types.Result.FailedInsufficientResources);
+                    System.Console.WriteLine($"Successfully evolved {mon.PokemonId} CP {mon.Cp}");
+                }
 
-            await Task.Delay(5000);
-            inventory = await client.Inventory.GetInventory();
-            pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
+                await Task.Delay(5000);
+                inventory = await client.Inventory.GetInventory();
+                pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
+                var secondEvolvePokemons = pokemons.Where(x => Common.EvolveLevelTwoPokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
+
+                System.Console.WriteLine("Level two Evolving");
+
+                foreach (var monType in secondEvolvePokemons)
+                {
+                    var mon = monType.First();
+                    EvolvePokemonResponse response;
+                    do
+                    {
+                        response = await client.Inventory.EvolvePokemon(mon.Id);
+                    } while (response.Result != EvolvePokemonResponse.Types.Result.Success && response.Result != EvolvePokemonResponse.Types.Result.FailedInsufficientResources);
+                    System.Console.WriteLine($"Successfully evolved {mon.PokemonId} CP {mon.Cp}");
+                }
+
+                await Task.Delay(5000);
+                inventory = await client.Inventory.GetInventory();
+                pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
+            }
 
             var powerUpMons = pokemons.Where(x => Common.PublishingPowerUpPokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
 
@@ -638,12 +661,18 @@ namespace PokemonGo.RocketAPI.Console
                     } while (response.Result != UpgradePokemonResponse.Types.Result.ErrorInsufficientResources && response.Result != UpgradePokemonResponse.Types.Result.ErrorUpgradeNotAvailable);
 
                     System.Console.WriteLine($"Successfully Powered {mon.PokemonId} CP {mon.Cp}");
+
+                    if(Common.PublishingPowerUpPokemons.Count > 2)
+                    {
+                        Common.PublishingPowerUpPokemons.RemoveAt(Common.PublishingPowerUpPokemons.Count-1);
+                    }
                 }
             }
             
 
             System.Console.WriteLine("[!] finished Publishing");
-            await Task.Delay(5000);
+            return await ShowPokemonStats(client);
+            //await Task.Delay(5000);
         }
     }
 }
