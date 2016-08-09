@@ -180,6 +180,8 @@ namespace PokemonGo.RocketAPI.Console
             };
 
             var client = new Client(clientSetting);
+            client.ApiFailure = new ApiFailureStrategy(client);
+            client.Init();
 
         ReExecute:
             try
