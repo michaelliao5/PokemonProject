@@ -2,11 +2,10 @@
 
 namespace PokemonGo.RocketAPI
 {
-    public class Settings
+    public class ClientSettings
     {
-        public Settings()
+        public ClientSettings()
         {
-            DeviceId = "8525f5d8201f78b5";
             AndroidBoardName = "msm8994";
             AndroidBootloader = "unknown";
             DeviceBrand = "OnePlus";

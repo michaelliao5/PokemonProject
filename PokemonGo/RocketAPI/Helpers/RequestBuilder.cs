@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using PokemonGo.RocketAPI.Extensions;
 
 namespace PokemonGo.RocketAPI.Helpers
@@ -21,15 +22,16 @@ namespace PokemonGo.RocketAPI.Helpers
         private readonly double _altitude;
         private readonly AuthTicket _authTicket;
         static private readonly Stopwatch _internalWatch = new Stopwatch();
+        private readonly ClientSettings settings;
 
-        public RequestBuilder(string authToken, AuthType authType, double latitude, double longitude, double altitude,
-            AuthTicket authTicket = null)
+        public RequestBuilder(string authToken, AuthType authType, double latitude, double longitude, double altitude, ClientSettings settings, AuthTicket authTicket = null)
         {
             _authToken = authToken;
             _authType = authType;
             _latitude = latitude;
             _longitude = longitude;
             _altitude = altitude;
+            this.settings = settings;
             _authTicket = authTicket;
             if (!_internalWatch.IsRunning)
                 _internalWatch.Start();
@@ -46,7 +48,7 @@ namespace PokemonGo.RocketAPI.Helpers
                 AccelNormalizedX = GenRandom(0.02),
                 AccelNormalizedY = GenRandom(0.3),
                 TimestampSnapshot = (ulong)_internalWatch.ElapsedMilliseconds - 230,
-                MagnetometerX = GenRandom(012271042913198471),
+                MagnetometerX = GenRandom(0.12271042913198471),
                 MagnetometerY = GenRandom(-0.015570580959320068),
                 MagnetometerZ = GenRandom(0.010850906372070313),
                 AngleNormalizedX = GenRandom(17.950439453125),
@@ -62,20 +64,19 @@ namespace PokemonGo.RocketAPI.Helpers
             };
             sig.DeviceInfo = new POGOProtos.Networking.Signature.Types.DeviceInfo()
             {
-                //DeviceId = "529e8aa6201f78b5",
-                DeviceId = GetDeviceId(),
-                AndroidBoardName = "msm8994", // might al
-                AndroidBootloader = "unknown",
-                DeviceBrand = "OnePlus",
-                DeviceModel = "OnePlus2", // might als
-                DeviceModelIdentifier = "ONE A2003_24_160604",
-                DeviceModelBoot = "qcom",
-                HardwareManufacturer = "OnePlus",
-                HardwareModel = "ONE A2003",
-                FirmwareBrand = "OnePlus2",
-                FirmwareTags = "dev-keys",
-                FirmwareType = "user",
-                FirmwareFingerprint = "OnePlus/OnePlus2/OnePlus2:6.0.1/MMB29M/1447840820:user/release-keys"
+                DeviceId = settings.DeviceId,
+                AndroidBoardName = settings.AndroidBoardName,
+                AndroidBootloader = settings.AndroidBootloader,
+                DeviceBrand = settings.DeviceBrand,
+                DeviceModel = settings.DeviceModel,
+                DeviceModelIdentifier = settings.DeviceModelIdentifier,
+                DeviceModelBoot = settings.DeviceModelBoot,
+                HardwareManufacturer = settings.HardwareManufacturer,
+                HardwareModel = settings.HardwareModel,
+                FirmwareBrand = settings.FirmwareBrand,
+                FirmwareTags = settings.FirmwareTags,
+                FirmwareType = settings.FirmwareType,
+                FirmwareFingerprint = settings.FirmwareFingerprint
             };
             sig.LocationFix.Add(new POGOProtos.Networking.Signature.Types.LocationFix()
             {
@@ -118,7 +119,6 @@ namespace PokemonGo.RocketAPI.Helpers
             val.Unknown2.Unknown1 = ByteString.CopyFrom(Encrypt(sig.ToByteArray()));
             return val;
         }
-        private int counterDumps = 0;
         private byte[] Encrypt(byte[] bytes)
         {
             var outputLength = 32 + bytes.Length + (256 - (bytes.Length % 256));
@@ -138,10 +138,12 @@ namespace PokemonGo.RocketAPI.Helpers
             }
             var output = new byte[outputLength];
             Marshal.Copy(ptrOutput, output, 0, outputLength);
+            Marshal.FreeHGlobal(ptr);
+            Marshal.FreeHGlobal(ptrOutput);
             return output;
         }
 
-        [DllImport("encrypt.dll", EntryPoint = "encrypt", CharSet = CharSet.Auto, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("Resources/encrypt.dll", EntryPoint = "encrypt", CharSet = CharSet.Auto, CallingConvention = CallingConvention.Cdecl)]
         static extern private void EncryptNative(IntPtr arr, int length, byte[] iv, int ivsize, IntPtr output, out int outputSize);
         [DllImport("kernel32.dll", EntryPoint = "RtlFillMemory", SetLastError = false)]
         static extern void FillMemory(IntPtr destination, uint length, byte fill);
@@ -193,6 +195,8 @@ namespace PokemonGo.RocketAPI.Helpers
             return e;
         }
 
+
+
         public RequestEnvelope GetRequestEnvelope(RequestType type, IMessage message)
         {
             return GetRequestEnvelope(new Request()
@@ -204,21 +208,14 @@ namespace PokemonGo.RocketAPI.Helpers
         }
 
         private static readonly Random RandomDevice = new Random();
+
         public static double GenRandom(double num)
         {
-            var randomFactor = 0.3f;
-            var randomMin = (num * (1 - randomFactor));
-            var randomMax = (num * (1 + randomFactor));
-            var randomizedDelay = RandomDevice.NextDouble() * (randomMax - randomMin) + randomMin; ;
-            return randomizedDelay; ;
-        }
-
-        public static string GetDeviceId()
-        {
-            byte[] DeviceUUID = new byte[8];
-            Random random = new Random();
-            random.NextBytes(DeviceUUID);
-            return BitConverter.ToString(DeviceUUID).Replace("-", "");
+                var randomFactor = 0.3f;
+                var randomMin = (num * (1 - randomFactor));
+                var randomMax = (num * (1 + randomFactor));
+                var randomizedDelay = RandomDevice.NextDouble() * (randomMax - randomMin) + randomMin; ;
+                return randomizedDelay;;
         }
     }
 }

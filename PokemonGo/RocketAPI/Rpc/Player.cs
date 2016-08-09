@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,10 +16,6 @@ namespace PokemonGo.RocketAPI.Rpc
 {
     public class Player : BaseRpc
     {
-        public static readonly string ConfigsPath = Path.Combine(Directory.GetCurrentDirectory(), "Settings");
-        public static readonly string LastcoordsFile = Path.Combine(ConfigsPath, "LastCoords.ini");
-        private Random _rand;
-
         public Player(Client client) : base(client)
         {
             _client = client;
@@ -45,49 +40,11 @@ namespace PokemonGo.RocketAPI.Rpc
             return await PostProtoPayload<Request, PlayerUpdateResponse>(updatePlayerLocationRequestEnvelope);
         }
 
-        private void CalcNoisedCoordinates(double lat, double lng, out double latNoise, out double lngNoise)
+        internal void SetCoordinates(double lat, double lng, double altitude)
         {
-            double mean = 0.0;// just for fun
-            double stdDev = 2.09513120352; //-> so 50% of the noised coordinates will have a maximal distance of 4 m to orginal ones
-
-            if (_rand == null)
-            {
-                _rand = new Random();
-            }
-            double u1 = _rand.NextDouble();
-            double u2 = _rand.NextDouble();
-            double u3 = _rand.NextDouble();
-            double u4 = _rand.NextDouble();
-
-            double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
-            double randNormal = mean + stdDev * randStdNormal;
-            double randStdNormal2 = Math.Sqrt(-2.0 * Math.Log(u3)) * Math.Sin(2.0 * Math.PI * u4);
-            double randNormal2 = mean + stdDev * randStdNormal2;
-
-            latNoise = lat + randNormal / 100000.0;
-            lngNoise = lng + randNormal2 / 100000.0;
-        }
-
-        internal void SetCoordinates(double latitude, double longitude, double altitude)
-        {
-            if (double.IsNaN(latitude) || double.IsNaN(longitude)) return;
-
-            var latNoised = 0.0;
-            var lngNoised = 0.0;
-            CalcNoisedCoordinates(latitude, longitude, out latNoised, out lngNoised);
-
-            _client.CurrentLatitude = latitude;
-            _client.CurrentLongitude = longitude;
+            _client.CurrentLatitude = lat;
+            _client.CurrentLongitude = lng;
             _client.CurrentAltitude = altitude;
-
-            SaveLatitudeLongitude(latitude, longitude);
-        }
-
-        public void SaveLatitudeLongitude(double latitude, double longitude)
-        {
-            if (double.IsNaN(latitude) || double.IsNaN(longitude)) return;
-
-            File.WriteAllText(LastcoordsFile, $"{latitude}:{longitude}");
         }
 
         public async Task<GetPlayerResponse> GetPlayer()

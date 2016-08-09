@@ -91,6 +91,14 @@ namespace PokemonGo.RocketAPI.Console
             return newRoute;
         }
 
+        public static string GetDeviceId()
+        {
+            byte[] DeviceUUID = new byte[8];
+            Random random = new Random();
+            random.NextBytes(DeviceUUID);
+            return BitConverter.ToString(DeviceUUID).Replace("-", "");
+        }
+
         private static double Distance(double lat1, double lon1, double lat2, double lon2)
         {
             var R = 6371; // Radius of the earth in km

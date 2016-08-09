@@ -25,7 +25,7 @@ namespace PokemonGo.RocketAPI.Console
     class Program
     {
         static int myMaxPokemon = 250;
-        static int basePokemonCount = 250;        
+        static int basePokemonCount = 250;
         static bool publishEnabled = false;
         static bool snipingEnabled = false;
         static GetInventoryResponse _inventory;
@@ -57,7 +57,7 @@ namespace PokemonGo.RocketAPI.Console
                             Settings.PtcPassword = args[1];
                         }
 
-                        if(args.Count() == 4)
+                        if (args.Count() == 4)
                         {
                             Settings.DefaultLongitude = long.Parse(args[3]);
                             Settings.DefaultLatitude = long.Parse(args[2]);
@@ -66,7 +66,7 @@ namespace PokemonGo.RocketAPI.Console
                         else
                         {
                             System.Console.WriteLine($"Location Set to New York");
-                        }                        
+                        }
                     }
                 }
                 catch (Exception e)
@@ -90,12 +90,12 @@ namespace PokemonGo.RocketAPI.Console
             var longi = System.Console.ReadLine();
             if (!string.IsNullOrEmpty(longi))
             {
-                if(longi.Trim() == "1")
+                if (longi.Trim() == "1")
                 {
                     Settings.DefaultLatitude = Settings.SantaMonicaLatitude;
                     Settings.DefaultLongitude = Settings.SantaMonicaLongitude;
                 }
-                else if(longi.Trim() == "3")
+                else if (longi.Trim() == "3")
                 {
                     Settings.DefaultLatitude = Settings.SidneyLatitude;
                     Settings.DefaultLongitude = Settings.SidneyLongitude;
@@ -110,15 +110,15 @@ namespace PokemonGo.RocketAPI.Console
                     System.Console.WriteLine($"Input Latitude:");
                     Settings.DefaultLatitude = Double.Parse(System.Console.ReadLine());
                     Settings.DefaultLongitude = Double.Parse(longi);
-                }                
+                }
             }
 
             System.Console.WriteLine($"Input Publishing Level, Enter if you want 30");
             var lvl = System.Console.ReadLine();
-            if(!string.IsNullOrWhiteSpace(lvl))
+            if (!string.IsNullOrWhiteSpace(lvl))
             {
                 Settings.PublishLevel = int.Parse(lvl);
-                if(Settings.PublishLevel > 35)
+                if (Settings.PublishLevel > 35)
                 {
                     Settings.Mode = SettingMode.Undefined;
                 }
@@ -155,22 +155,41 @@ namespace PokemonGo.RocketAPI.Console
 
         static async void Execute()
         {
-            if(Settings.UsingIV)
+            if (Settings.UsingIV)
                 System.Console.WriteLine("Using IV Mode");
-            if(Settings.Mode == SettingMode.ItemMode)
+            if (Settings.Mode == SettingMode.ItemMode)
                 System.Console.WriteLine("Using Item Farming Mode");
 
-            var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.GoogleRefreshToken, Settings.AuthType, Settings.GoogleUsername, Settings.GooglePassword, Settings.PtcUsername, Settings.PtcPassword);
+            var clientSetting = new ClientSettings()
+            {
+                DefaultLatitude = Settings.DefaultLatitude,
+                DefaultLongitude = Settings.DefaultLongitude,
+                GoogleRefreshToken = Settings.GoogleRefreshToken,
+                AuthType = Settings.AuthType,
+                GoogleUsername = Settings.GoogleUsername,
+                GooglePassword = Settings.GooglePassword,
+                PtcUsername = Settings.PtcUsername,
+                PtcPassword = Settings.PtcPassword,
+                DeviceId = Helper.GetDeviceId(),
+                UseProxy = Settings.UseProxy,
+                UseProxyAuthentication = Settings.UseProxyAuthentication,
+                UseProxyHost = Settings.UseProxyHost,
+                UseProxyPort = Settings.UseProxyPort,
+                UseProxyUsername = Settings.UseProxyUsername,
+                UseProxyPassword = Settings.UseProxyPassword,
+            };
+
+            var client = new Client(clientSetting);
 
         ReExecute:
             try
             {
                 _timer.Start();
-                await client.Login.DoLogin();             
-                
+                await client.Login.DoLogin();
+
                 while (true)
                 {
-                    switch(Settings.Mode)
+                    switch (Settings.Mode)
                     {
                         case SettingMode.ShowStatsMode:
                             System.Console.WriteLine($"Showing Status");
@@ -205,7 +224,7 @@ namespace PokemonGo.RocketAPI.Console
                         default:
                             if (publishEnabled)
                             {
-                                if(await PublishingAccount(client))
+                                if (await PublishingAccount(client))
                                 {
                                     await Task.Delay(15000);
                                     System.Console.WriteLine($"ACCOUNT READY");
@@ -248,7 +267,7 @@ namespace PokemonGo.RocketAPI.Console
                 var dust = profile.PlayerData.Currencies[1].Amount;
                 var level = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PlayerStats).Where(p => p != null && p?.Level > 0).First().Level;
                 var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p.PokemonId != default(PokemonId));
-                
+
                 foreach (var pokemon in pokemons.Where(x => x.Cp > 2000).OrderBy(x => x.Cp))
                 {
                     System.Console.WriteLine($"Pokemon {pokemon.PokemonId} CP {pokemon.Cp}");
@@ -267,11 +286,11 @@ namespace PokemonGo.RocketAPI.Console
             if (inventory != null && inventory.InventoryDelta != null)
             {
                 var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p.PokemonId != default(PokemonId));
-                foreach(var pokemon in pokemons.Where(x => x.Nickname != x.PokemonId.ToString()))
+                foreach (var pokemon in pokemons.Where(x => x.Nickname != x.PokemonId.ToString()))
                 {
                     System.Console.WriteLine($"Renaming Pokemon {pokemon.PokemonId}");
                     await client.Inventory.NicknamePokemon(pokemon.Id, pokemon.PokemonId.ToString());
-                    
+
                 }
             }
         }
@@ -288,9 +307,9 @@ namespace PokemonGo.RocketAPI.Console
             foreach (var pokeStop in pokeStops)
             {
                 var update = await client.Player.UpdatePlayerLocation(pokeStop.Latitude, pokeStop.Longitude, 100);
-                var fortInfo = await client.Fort.GetFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);                
+                var fortInfo = await client.Fort.GetFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
                 var fortSearch = await client.Fort.SearchFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
-                
+
                 if (fortSearch != null)
                 {
                     System.Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Farmed XP: {fortSearch.ExperienceAwarded}, Gems: { fortSearch.GemsAwarded}, Eggs: {fortSearch.PokemonDataEgg} Items: {Helper.GetFriendlyItemsString(fortSearch.ItemsAwarded)}");
@@ -308,10 +327,10 @@ namespace PokemonGo.RocketAPI.Console
                         if (pData != null)
                         {
                             System.Console.Title = string.Format("{0} level {1:0} - ({2:0} / {3:0})",
-                              Settings.PtcUsername,+pData.Level,
+                              Settings.PtcUsername, +pData.Level,
                              +(pData.Experience - pData.PrevLevelXp),
                               +(pData.NextLevelXp - pData.PrevLevelXp));
-                            if(pData.Level >= Settings.PublishLevel)
+                            if (pData.Level >= Settings.PublishLevel)
                             {
                                 publishEnabled = true;
                             }
@@ -322,12 +341,12 @@ namespace PokemonGo.RocketAPI.Console
                         }
 
 
-                        if (pokemons.Count() >= myMaxPokemon-20)
+                        if (pokemons.Count() >= myMaxPokemon - 20)
                         {
                             await TransferAllButStrongestUnwantedPokemon(client);
                         }
 
-                        if(Settings.Mode != SettingMode.ItemMode)
+                        if (Settings.Mode != SettingMode.ItemMode)
                         {
                             if (pokeStop.LureInfo != null)
                             {
@@ -349,7 +368,7 @@ namespace PokemonGo.RocketAPI.Console
                         }
 
                         scanCount++;
-                        if(scanCount == 5 && snipingEnabled)
+                        if (scanCount == 5 && snipingEnabled)
                         {
                             scanCount = 0;
                             await SnipeHelper.Scan(client, _inventory);
@@ -376,7 +395,7 @@ namespace PokemonGo.RocketAPI.Console
             {
                 var berryUsed = false;
                 var inventoryBalls = _inventory;
-                
+
                 var items = inventoryBalls.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData.Item).Where(p => p != null);
                 CatchPokemonResponse caughtPokemonResponse;
                 var pokeBall = await Helper.GetBestBall(encounter.PokemonData.Cp, inventoryBalls);
@@ -390,7 +409,7 @@ namespace PokemonGo.RocketAPI.Console
                         //await Task.Delay(3000);
                     }
                     caughtPokemonResponse = await client.Encounter.CatchPokemon(encounterId, fort.Id, pokeBall);
-                    
+
                 } while (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
 
                 string Iv = Math.Round(PokemonInfo.CalculatePokemonPerfection(encounter?.PokemonData), 2).ToString();
@@ -402,10 +421,11 @@ namespace PokemonGo.RocketAPI.Console
 
                 }
 
-                System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? 
+                System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ?
                         $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemonId} with CP {encounter?.PokemonData?.Cp} IV {Iv}"
                         : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemonId} got away.. ");
-            }else
+            }
+            else
             {
                 System.Console.WriteLine($"Encounter problem: Lure Pokemon {encounter.Result}");
             }
@@ -416,17 +436,17 @@ namespace PokemonGo.RocketAPI.Console
             var mapObjects = await client.Map.GetMapObjects();
 
             var pokemons = mapObjects.Item1.MapCells.SelectMany(i => i.CatchablePokemons);
-            
+
             foreach (var pokemon in pokemons)
             {
                 //var update = await client.Player.UpdatePlayerLocation(pokemon.Latitude, pokemon.Longitude, 100);
                 var encounterPokemonRespone = await client.Encounter.EncounterPokemon(pokemon.EncounterId, pokemon.SpawnPointId);
 
                 CatchPokemonResponse caughtPokemonResponse;
-                
+
                 var berryUsed = false;
                 var inventoryBalls = _inventory;
-                
+
                 var items = inventoryBalls.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData.Item).Where(p => p != null);
                 if (encounterPokemonRespone.WildPokemon != null)
                 {
@@ -441,7 +461,7 @@ namespace PokemonGo.RocketAPI.Console
                             //await Task.Delay(3000);
                         }
                         caughtPokemonResponse = await client.Encounter.CatchPokemon(pokemon.EncounterId, pokemon.SpawnPointId, pokeBall);
-                        
+
                     } while (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed || caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchEscape);
 
                     string Iv = Math.Round(PokemonInfo.CalculatePokemonPerfection(encounterPokemonRespone?.WildPokemon?.PokemonData), 2).ToString();
@@ -450,11 +470,11 @@ namespace PokemonGo.RocketAPI.Console
                     {
                         await Task.Delay(500);
                         await client.Inventory.NicknamePokemon(caughtPokemonResponse.CapturedPokemonId, Iv);
-                        
+
                     }
 
-                    System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess 
-                        ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}  IV {Iv}" 
+                    System.Console.WriteLine(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess
+                        ? $"[{DateTime.Now.ToString("HH:mm:ss")}] We caught a {pokemon.PokemonId} with CP {encounterPokemonRespone?.WildPokemon?.PokemonData?.Cp}  IV {Iv}"
                         : $"[{DateTime.Now.ToString("HH:mm:ss")}] {pokemon.PokemonId} got away..");
                 }
             }
@@ -463,7 +483,7 @@ namespace PokemonGo.RocketAPI.Console
         private static async Task TransferAllButStrongestUnwantedPokemon(Client client)
         {
             var pokemonTypes = Enum.GetValues(typeof(PokemonId)).Cast<PokemonId>();
-            
+
             System.Console.WriteLine("Evolving Garbage Pokemon");
             var inventory = await client.Inventory.GetInventory();
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
@@ -537,10 +557,10 @@ namespace PokemonGo.RocketAPI.Console
                     System.Console.WriteLine($"Somehow failed to transfer {pokemon.PokemonId}. ReleasePokemonOutProto.Status was {status.ToString()}");
                 }
 
-                
+
             }
         }
-        
+
         private static async Task CleanInventory(Client client)
         {
             var inventory = await client.Inventory.GetInventory();
@@ -570,7 +590,7 @@ namespace PokemonGo.RocketAPI.Console
                     System.Console.WriteLine($"Recycled {item.Count}x {(ItemId)item.ItemId}");
 
                 }
-            }            
+            }
         }
         private static async Task RecycleItems(Client client)
         {
@@ -585,16 +605,16 @@ namespace PokemonGo.RocketAPI.Console
             {
                 var transfer = await client.Inventory.RecycleItem((ItemId)item.ItemId, item.Count);
                 System.Console.WriteLine($"Recycled {item.Count}x {(ItemId)item.ItemId}");
-                
+
             }
         }
         private static async Task<bool> PublishingAccount(Client client)
         {
-            System.Console.WriteLine("Publishing Account");            
+            System.Console.WriteLine("Publishing Account");
             var inventory = await client.Inventory.GetInventory();
             var pokemons = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData?.PokemonData).Where(p => p != null && p?.PokemonId > 0);
 
-            if(Settings.Mode != SettingMode.PowerMode && Settings.Mode != SettingMode.ThreeKMode)
+            if (Settings.Mode != SettingMode.PowerMode && Settings.Mode != SettingMode.ThreeKMode)
             {
                 var firstEvolvePokemons = pokemons.Where(x => Common.EvolveLevelOnePokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
 
@@ -644,13 +664,13 @@ namespace PokemonGo.RocketAPI.Console
 
             var powerUpMons = pokemons.Where(x => Common.PublishingPowerUpPokemons.Contains(x.PokemonId)).OrderByDescending(x => x.Cp).GroupBy(x => x.PokemonId).ToArray();
 
-            
+
             System.Console.WriteLine("Starting Powering");
-            
+
             foreach (var monType in powerUpMons)
             {
                 var mon = monType.First();
-                if(mon.Cp > 1000)
+                if (mon.Cp > 1000)
                 {
                     UpgradePokemonResponse response;
 
@@ -662,13 +682,13 @@ namespace PokemonGo.RocketAPI.Console
 
                     System.Console.WriteLine($"Successfully Powered {mon.PokemonId} CP {mon.Cp}");
 
-                    if(Common.PublishingPowerUpPokemons.Count > 2)
+                    if (Common.PublishingPowerUpPokemons.Count > 2)
                     {
-                        Common.PublishingPowerUpPokemons.RemoveAt(Common.PublishingPowerUpPokemons.Count-1);
+                        Common.PublishingPowerUpPokemons.RemoveAt(Common.PublishingPowerUpPokemons.Count - 1);
                     }
                 }
             }
-            
+
 
             System.Console.WriteLine("[!] finished Publishing");
             return await ShowPokemonStats(client);

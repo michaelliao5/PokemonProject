@@ -3,12 +3,10 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using PokemonGo.RocketAPI.Exceptions;
-using PokemonGo.RocketAPI.Helpers;
 using POGOProtos.Networking.Envelopes;
 
 namespace PokemonGo.RocketAPI.Extensions
 {
-    using Logging;
     using System;
 
     public enum ApiOperation
@@ -27,6 +25,7 @@ namespace PokemonGo.RocketAPI.Extensions
     {
         public static async Task<IMessage[]> PostProtoPayload<TRequest>(this System.Net.Http.HttpClient client, 
             string url, RequestEnvelope requestEnvelope,
+            IApiFailureStrategy strategy,
             params Type[] responseTypes) where TRequest : IMessage<TRequest>
         {
             var result = new IMessage[responseTypes.Length];
@@ -39,19 +38,17 @@ namespace PokemonGo.RocketAPI.Extensions
                 }
             }
 
-            var loopsOnBadRepsonse = 1;
-
-            ResponseEnvelope response = await PostProto<TRequest>(client, url, requestEnvelope);
-            while (response.Returns.Count != responseTypes.Length && loopsOnBadRepsonse <= 5)
+            ResponseEnvelope response;
+            while ((response = await PostProto<TRequest>(client, url, requestEnvelope)).Returns.Count != responseTypes.Length)
             {
-                //Logger.Write($"Bad Payload Repsonse. Retry {loopsOnBadRepsonse} of 5 <- IGNORE THIS FUCKING MESSAGE...I KNOW IT", LogLevel.Warning);
-                await RandomHelper.RandomDelay(250, 500);
-                response = await PostProto<TRequest>(client, url, requestEnvelope);
-                loopsOnBadRepsonse += 1;
+                var operation = await strategy.HandleApiFailure(requestEnvelope, response);
+                if (operation == ApiOperation.Abort)
+                {
+                    throw new InvalidResponseException($"Expected {responseTypes.Length} responses, but got {response.Returns.Count} responses");
+                }
             }
 
-            if (response.Returns.Count != responseTypes.Length)
-                throw new InvalidResponseException($"Expected {responseTypes.Length} responses, but got {response.Returns.Count} responses");
+            strategy.HandleApiSuccess(requestEnvelope, response);
 
             for (var i = 0; i < responseTypes.Length; i++)
             {
@@ -62,23 +59,27 @@ namespace PokemonGo.RocketAPI.Extensions
         }
 
         public static async Task<TResponsePayload> PostProtoPayload<TRequest, TResponsePayload>(this System.Net.Http.HttpClient client,
-            string url, RequestEnvelope requestEnvelope) where TRequest : IMessage<TRequest>
+            string url, RequestEnvelope requestEnvelope, IApiFailureStrategy strategy) where TRequest : IMessage<TRequest>
             where TResponsePayload : IMessage<TResponsePayload>, new()
         {
             Debug.WriteLine($"Requesting {typeof(TResponsePayload).Name}");
-            var loopsOnBadRepsonse = 1;
-
             var response = await PostProto<TRequest>(client, url, requestEnvelope);
-            while (response.Returns.Count == 0 && loopsOnBadRepsonse <= 5)
+
+            while (response.Returns.Count == 0)
             {
-                //Logger.Write($"Bad Payload Repsonse. Retry {loopsOnBadRepsonse} of 5 <- IGNORE THIS FUCKING MESSAGE...I KNOW IT", LogLevel.Warning);
-                await RandomHelper.RandomDelay(250, 500);
+                var operation = await strategy.HandleApiFailure(requestEnvelope, response);
+                if (operation == ApiOperation.Abort)
+                {
+                    break;
+                }
+
                 response = await PostProto<TRequest>(client, url, requestEnvelope);
-                loopsOnBadRepsonse += 1;    
             }
 
             if (response.Returns.Count == 0)
                 throw new InvalidResponseException();
+
+            strategy.HandleApiSuccess(requestEnvelope, response);
 
             //Decode payload
             //todo: multi-payload support
