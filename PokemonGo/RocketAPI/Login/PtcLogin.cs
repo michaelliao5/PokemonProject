@@ -12,23 +12,18 @@ namespace PokemonGo.RocketAPI.Login
     {
         readonly string password;
         readonly string username;
-        readonly Settings _settings;
 
-        public PtcLogin(string username, string password, Settings settings)
+        public PtcLogin(string username, string password)
         {
             this.username = username;
             this.password = password;
-            this._settings = settings;
         }
-
         public async Task<string> GetAccessToken()
         {
             var handler = new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.GZip,
-                AllowAutoRedirect = false,
-                UseProxy = Client.Proxy != null,
-                Proxy = Client.Proxy
+                AllowAutoRedirect = false
             };
 
             using (var tempHttpClient = new System.Net.Http.HttpClient(handler))

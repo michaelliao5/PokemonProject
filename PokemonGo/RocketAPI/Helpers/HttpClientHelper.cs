@@ -9,14 +9,11 @@ namespace PokemonGo.RocketAPI.Helpers
     {
         public static async Task<TResponse> PostFormEncodedAsync<TResponse>(string url,
             params KeyValuePair<string, string>[] keyValuePairs)
-
         {
             var handler = new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.GZip,
-                AllowAutoRedirect = false,
-                UseProxy = Client.Proxy != null,
-                Proxy = Client.Proxy
+                AllowAutoRedirect = false
             };
 
             using (var tempHttpClient = new System.Net.Http.HttpClient(handler))

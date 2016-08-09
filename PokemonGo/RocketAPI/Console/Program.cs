@@ -161,7 +161,7 @@ namespace PokemonGo.RocketAPI.Console
                 System.Console.WriteLine("Using Item Farming Mode");
 
             var client = new Client(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.GoogleRefreshToken, Settings.AuthType, Settings.GoogleUsername, Settings.GooglePassword, Settings.PtcUsername, Settings.PtcPassword);
-            client.ApiFailure = new ApiFailureStrategy(client);
+
         ReExecute:
             try
             {
