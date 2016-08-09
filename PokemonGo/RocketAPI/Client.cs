@@ -1,20 +1,8 @@
-﻿using System;
-using System.Net;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Google.Protobuf;
+﻿using System.Net;
 using PokemonGo.RocketAPI.Enums;
-using PokemonGo.RocketAPI.Exceptions;
 using PokemonGo.RocketAPI.Extensions;
-using PokemonGo.RocketAPI.Helpers;
 using PokemonGo.RocketAPI.HttpClient;
-using PokemonGo.RocketAPI.Login;
-using POGOProtos.Inventory;
-using POGOProtos.Inventory.Item;
 using POGOProtos.Networking.Envelopes;
-using POGOProtos.Networking.Requests;
-using POGOProtos.Networking.Requests.Messages;
-using POGOProtos.Networking.Responses;
 
 namespace PokemonGo.RocketAPI
 {
@@ -33,13 +21,15 @@ namespace PokemonGo.RocketAPI
         public Settings Settings { get; }
         public string AuthToken { get; set; }
 
+        internal static WebProxy Proxy;
+
         public double CurrentLatitude { get; internal set; }
         public double CurrentLongitude { get; internal set; }
         public double CurrentAltitude { get; internal set; }
 
         public AuthType AuthType => Settings.AuthType;
 
-        internal readonly PokemonHttpClient PokemonHttpClient = new PokemonHttpClient();
+        internal readonly PokemonHttpClient PokemonHttpClient;
         internal string ApiUrl { get; set; }
         internal AuthTicket AuthTicket { get; set; }
 
@@ -54,7 +44,8 @@ namespace PokemonGo.RocketAPI
             Settings.GooglePassword = googlePass;
             Settings.PtcUsername = ptcUser;
             Settings.PtcPassword = ptcPass;
-
+            Proxy = InitProxy();
+            PokemonHttpClient = new PokemonHttpClient();
             Login = new Rpc.Login(this);
             Player = new Rpc.Player(this);
             Download = new Rpc.Download(this);
@@ -65,6 +56,18 @@ namespace PokemonGo.RocketAPI
             Misc = new Rpc.Misc(this);
 
             Player.SetCoordinates(Settings.DefaultLatitude, Settings.DefaultLongitude, Settings.DefaultAltitude);
+        }
+
+        private WebProxy InitProxy()
+        {
+            if (!Settings.UseProxy) return null;
+
+            WebProxy prox = new WebProxy(new System.Uri($"http://{Settings.UseProxyHost}:{Settings.UseProxyPort}"), false, null);
+
+            if (Settings.UseProxyAuthentication)
+                prox.Credentials = new NetworkCredential(Settings.UseProxyUsername, Settings.UseProxyPassword);
+
+            return prox;
         }
     }
 }

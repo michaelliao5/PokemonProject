@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 using PokemonGo.RocketAPI.Helpers;
 
 namespace PokemonGo.RocketAPI.HttpClient
@@ -14,16 +9,19 @@ namespace PokemonGo.RocketAPI.HttpClient
         private static readonly HttpClientHandler Handler = new HttpClientHandler
         {
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            AllowAutoRedirect = false
+            AllowAutoRedirect = false,
+            UseProxy = Client.Proxy != null,
+            Proxy = Client.Proxy
         };
 
         public PokemonHttpClient() : base(new RetryHandler(Handler))
         {
             DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Niantic App");
-            DefaultRequestHeaders.ExpectContinue = false;
             DefaultRequestHeaders.TryAddWithoutValidation("Connection", "keep-alive");
             DefaultRequestHeaders.TryAddWithoutValidation("Accept", "*/*");
             DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/x-www-form-urlencoded");
+
+            DefaultRequestHeaders.ExpectContinue = false;
         }
     }
 }

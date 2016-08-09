@@ -48,7 +48,7 @@ namespace PokemonGo.RocketAPI.Helpers
                 AccelNormalizedX = GenRandom(0.02),
                 AccelNormalizedY = GenRandom(0.3),
                 TimestampSnapshot = (ulong)_internalWatch.ElapsedMilliseconds - 230,
-                MagnetometerX = GenRandom(012271042913198471),
+                MagnetometerX = GenRandom(0.12271042913198471),
                 MagnetometerY = GenRandom(-0.015570580959320068),
                 MagnetometerZ = GenRandom(0.010850906372070313),
                 AngleNormalizedX = GenRandom(17.950439453125),
@@ -138,10 +138,12 @@ namespace PokemonGo.RocketAPI.Helpers
             }
             var output = new byte[outputLength];
             Marshal.Copy(ptrOutput, output, 0, outputLength);
+            Marshal.FreeHGlobal(ptr);
+            Marshal.FreeHGlobal(ptrOutput);
             return output;
         }
 
-        [DllImport("encrypt.dll", EntryPoint = "encrypt", CharSet = CharSet.Auto, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("Resources/encrypt.dll", EntryPoint = "encrypt", CharSet = CharSet.Auto, CallingConvention = CallingConvention.Cdecl)]
         static extern private void EncryptNative(IntPtr arr, int length, byte[] iv, int ivsize, IntPtr output, out int outputSize);
         [DllImport("kernel32.dll", EntryPoint = "RtlFillMemory", SetLastError = false)]
         static extern void FillMemory(IntPtr destination, uint length, byte fill);
